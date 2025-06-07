@@ -1,4 +1,4 @@
-use std::ops::{Add, Neg, Sub};
+use std::ops::{Add, Mul, Neg, Sub};
 
 pub struct Tuple {
     pub x: f64,
@@ -55,6 +55,18 @@ impl Neg for Tuple {
             y: -self.y,
             z: -self.z,
             w: -self.w,
+        }
+    }
+}
+
+impl Mul<f64> for Tuple {
+    type Output = Tuple;
+    fn mul(self, scalar: f64) -> Self::Output {
+        Tuple {
+            x: self.x * scalar,
+            y: self.y * scalar,
+            z: self.z * scalar,
+            w: self.w * scalar,
         }
     }
 }
@@ -184,5 +196,35 @@ mod tests {
         assert_abs_diff_eq!(negated.y, 2.0);
         assert_abs_diff_eq!(negated.z, -3.0);
         assert_abs_diff_eq!(negated.w, 4.0);
+    }
+
+    #[test]
+    fn multiply_tuple_by_scalar() {
+        let tuple = Tuple {
+            x: 1.0,
+            y: -2.0,
+            z: 3.0,
+            w: -4.0,
+        };
+        let result = tuple * 3.5;
+        assert_abs_diff_eq!(result.x, 3.5);
+        assert_abs_diff_eq!(result.y, -7.0);
+        assert_abs_diff_eq!(result.z, 10.5);
+        assert_abs_diff_eq!(result.w, -14.0);
+    }
+
+    #[test]
+    fn multiply_tuple_by_fraction() {
+        let tuple = Tuple {
+            x: 1.0,
+            y: -2.0,
+            z: 3.0,
+            w: -4.0,
+        };
+        let result = tuple * 0.5;
+        assert_abs_diff_eq!(result.x, 0.5);
+        assert_abs_diff_eq!(result.y, -1.0);
+        assert_abs_diff_eq!(result.z, 1.5);
+        assert_abs_diff_eq!(result.w, -2.0);
     }
 }
