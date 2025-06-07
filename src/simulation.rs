@@ -1,6 +1,5 @@
 use crate::environment::Environment;
 use crate::projectile::Projectile;
-use crate::tuple::Tuple;
 
 pub struct Simulation {
     environment: Environment,
@@ -29,6 +28,8 @@ impl Simulation {
 
 #[cfg(test)]
 mod tests {
+    use crate::tuple::Tuple;
+
     use super::*;
 
     #[test]
