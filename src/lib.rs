@@ -1,7 +1,10 @@
 pub mod colour;
 pub mod environment;
+pub mod intersection;
 pub mod matrix;
 pub mod projectile;
+pub mod ray;
 pub mod scene;
 pub mod simulation;
+pub mod sphere;
 pub mod tuple;
