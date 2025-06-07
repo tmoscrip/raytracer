@@ -1,6 +1,6 @@
 use crate::environment::Environment;
-use crate::geometry::Tuple;
 use crate::projectile::Projectile;
+use crate::tuple::Tuple;
 
 pub struct Simulation {
     environment: Environment,

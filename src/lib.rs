@@ -1,9 +1,9 @@
 use wasm_bindgen::prelude::*;
 
 pub mod environment;
-pub mod geometry;
 pub mod projectile;
 pub mod simulation;
+pub mod tuple;
 
 #[wasm_bindgen]
 pub struct Scene {

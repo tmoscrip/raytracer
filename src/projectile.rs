@@ -1,4 +1,4 @@
-use crate::geometry::Tuple;
+use crate::tuple::Tuple;
 
 pub struct Projectile {
     pub pos: Tuple,
