@@ -23,8 +23,13 @@ impl Tuple {
     pub fn is_point(&self) -> bool {
         self.w == 1.0
     }
+
     pub fn is_vector(&self) -> bool {
         self.w == 0.0
+    }
+
+    pub fn magnitude(&self) -> f64 {
+        (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).sqrt()
     }
 }
 
@@ -210,5 +215,20 @@ mod tests {
         let tuple = Tuple::new(1.0, -2.0, 3.0, -4.0);
         let result = tuple / 2.0;
         assert_abs_diff_eq!(result, Tuple::new(0.5, -1.0, 1.5, -2.0));
+    }
+
+    #[test]
+    fn vector_magnitude() {
+        let test_cases = [
+            (Tuple::vector(1.0, 0.0, 0.0), 1.0),
+            (Tuple::vector(0.0, 1.0, 0.0), 1.0),
+            (Tuple::vector(0.0, 0.0, 1.0), 1.0),
+            (Tuple::vector(1.0, 2.0, 3.0), 14.0_f64.sqrt()),
+            (Tuple::vector(-1.0, -2.0, -3.0), 14.0_f64.sqrt()),
+        ];
+
+        for (vector, expected) in test_cases {
+            assert_abs_diff_eq!(vector.magnitude(), expected);
+        }
     }
 }
