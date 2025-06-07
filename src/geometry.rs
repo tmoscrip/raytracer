@@ -1,5 +1,6 @@
 use std::ops::{Add, Mul, Neg, Sub};
 
+#[derive(Debug)]
 pub struct Tuple {
     pub x: f64,
     pub y: f64,
@@ -78,28 +79,39 @@ impl Mul<f64> for Tuple {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use approx::assert_abs_diff_eq;
+    use approx::{assert_abs_diff_eq, AbsDiffEq};
+
+    impl PartialEq for Tuple {
+        fn eq(&self, other: &Self) -> bool {
+            self.x == other.x && self.y == other.y && self.z == other.z && self.w == other.w
+        }
+    }
+
+    impl AbsDiffEq for Tuple {
+        type Epsilon = f64;
+
+        fn default_epsilon() -> Self::Epsilon {
+            f64::EPSILON
+        }
+
+        fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+            f64::abs_diff_eq(&self.x, &other.x, epsilon)
+                && f64::abs_diff_eq(&self.y, &other.y, epsilon)
+                && f64::abs_diff_eq(&self.z, &other.z, epsilon)
+                && f64::abs_diff_eq(&self.w, &other.w, epsilon)
+        }
+    }
 
     #[test]
     fn tuple_point_is_point() {
-        let tuple = Tuple {
-            x: 1.0,
-            y: 2.0,
-            z: 3.0,
-            w: 1.0,
-        };
+        let tuple = Tuple::new(1.0, 2.0, 3.0, 1.0);
         assert_eq!(tuple.is_point(), true);
         assert_eq!(tuple.is_vector(), false);
     }
 
     #[test]
     fn tuple_vector_is_vector() {
-        let tuple = Tuple {
-            x: 1.0,
-            y: 2.0,
-            z: 3.0,
-            w: 0.0,
-        };
+        let tuple = Tuple::new(1.0, 2.0, 3.0, 0.0);
         assert_eq!(tuple.is_point(), false);
         assert_eq!(tuple.is_vector(), true);
     }
@@ -107,40 +119,21 @@ mod tests {
     #[test]
     fn point_constructor_returns_point() {
         let tuple = Tuple::point(1.0, 2.0, 3.0);
-        assert_abs_diff_eq!(tuple.x, 1.0);
-        assert_abs_diff_eq!(tuple.y, 2.0);
-        assert_abs_diff_eq!(tuple.z, 3.0);
-        assert_abs_diff_eq!(tuple.w, 1.0);
+        assert_abs_diff_eq!(tuple, Tuple::new(1.0, 2.0, 3.0, 1.0));
     }
 
     #[test]
     fn vector_constructor_returns_vector() {
         let tuple = Tuple::vector(1.0, 2.0, 3.0);
-        assert_abs_diff_eq!(tuple.x, 1.0);
-        assert_abs_diff_eq!(tuple.y, 2.0);
-        assert_abs_diff_eq!(tuple.z, 3.0);
-        assert_abs_diff_eq!(tuple.w, 0.0);
+        assert_abs_diff_eq!(tuple, Tuple::new(1.0, 2.0, 3.0, 0.0));
     }
 
     #[test]
     fn add_two_tuples() {
-        let tuple1 = Tuple {
-            x: 3.0,
-            y: -2.0,
-            z: 5.0,
-            w: 1.0,
-        };
-        let tuple2 = Tuple {
-            x: -2.0,
-            y: 3.0,
-            z: 1.0,
-            w: 0.0,
-        };
+        let tuple1 = Tuple::new(3.0, -2.0, 5.0, 1.0);
+        let tuple2 = Tuple::new(-2.0, 3.0, 1.0, 0.0);
         let tuple3 = tuple1 + tuple2;
-        assert_abs_diff_eq!(tuple3.x, 1.0);
-        assert_abs_diff_eq!(tuple3.y, 1.0);
-        assert_abs_diff_eq!(tuple3.z, 6.0);
-        assert_abs_diff_eq!(tuple3.w, 1.0);
+        assert_abs_diff_eq!(tuple3, Tuple::new(1.0, 1.0, 6.0, 1.0));
     }
 
     #[test]
@@ -148,9 +141,7 @@ mod tests {
         let point1 = Tuple::point(3.0, 2.0, 1.0);
         let point2 = Tuple::point(5.0, 6.0, 7.0);
         let vector = point1 - point2;
-        assert_abs_diff_eq!(vector.x, -2.0);
-        assert_abs_diff_eq!(vector.y, -4.0);
-        assert_abs_diff_eq!(vector.z, -6.0);
+        assert_abs_diff_eq!(vector, Tuple::new(-2.0, -4.0, -6.0, 0.0));
         assert_eq!(vector.is_vector(), true);
     }
 
@@ -159,9 +150,7 @@ mod tests {
         let point = Tuple::point(3.0, 2.0, 1.0);
         let vector = Tuple::vector(5.0, 6.0, 7.0);
         let result = point - vector;
-        assert_abs_diff_eq!(result.x, -2.0);
-        assert_abs_diff_eq!(result.y, -4.0);
-        assert_abs_diff_eq!(result.z, -6.0);
+        assert_abs_diff_eq!(result, Tuple::new(-2.0, -4.0, -6.0, 1.0));
         assert_eq!(result.is_point(), true);
     }
 
@@ -170,9 +159,7 @@ mod tests {
         let vector1 = Tuple::vector(3.0, 2.0, 1.0);
         let vector2 = Tuple::vector(5.0, 6.0, 7.0);
         let vector = vector1 - vector2;
-        assert_abs_diff_eq!(vector.x, -2.0);
-        assert_abs_diff_eq!(vector.y, -4.0);
-        assert_abs_diff_eq!(vector.z, -6.0);
+        assert_abs_diff_eq!(vector, Tuple::new(-2.0, -4.0, -6.0, 0.0));
         assert_eq!(vector.is_vector(), true);
     }
 
@@ -181,9 +168,7 @@ mod tests {
         let zero = Tuple::vector(0.0, 0.0, 0.0);
         let vector = Tuple::vector(1.0, -2.0, 3.0);
         let result = zero - vector;
-        assert_abs_diff_eq!(result.x, -1.0);
-        assert_abs_diff_eq!(result.y, 2.0);
-        assert_abs_diff_eq!(result.z, -3.0);
+        assert_abs_diff_eq!(result, Tuple::new(-1.0, 2.0, -3.0, 0.0));
         assert_eq!(result.is_vector(), true);
     }
 
@@ -191,29 +176,20 @@ mod tests {
     fn negate_tuple() {
         let tuple = Tuple::new(1.0, -2.0, 3.0, -4.0);
         let negated = -tuple;
-        assert_abs_diff_eq!(negated.x, -1.0);
-        assert_abs_diff_eq!(negated.y, 2.0);
-        assert_abs_diff_eq!(negated.z, -3.0);
-        assert_abs_diff_eq!(negated.w, 4.0);
+        assert_abs_diff_eq!(negated, Tuple::new(-1.0, 2.0, -3.0, 4.0));
     }
 
     #[test]
     fn multiply_tuple_by_scalar() {
         let tuple = Tuple::new(1.0, -2.0, 3.0, -4.0);
         let result = tuple * 3.5;
-        assert_abs_diff_eq!(result.x, 3.5);
-        assert_abs_diff_eq!(result.y, -7.0);
-        assert_abs_diff_eq!(result.z, 10.5);
-        assert_abs_diff_eq!(result.w, -14.0);
+        assert_abs_diff_eq!(result, Tuple::new(3.5, -7.0, 10.5, -14.0));
     }
 
     #[test]
     fn multiply_tuple_by_fraction() {
         let tuple = Tuple::new(1.0, -2.0, 3.0, -4.0);
         let result = tuple * 0.5;
-        assert_abs_diff_eq!(result.x, 0.5);
-        assert_abs_diff_eq!(result.y, -1.0);
-        assert_abs_diff_eq!(result.z, 1.5);
-        assert_abs_diff_eq!(result.w, -2.0);
+        assert_abs_diff_eq!(result, Tuple::new(0.5, -1.0, 1.5, -2.0));
     }
 }
