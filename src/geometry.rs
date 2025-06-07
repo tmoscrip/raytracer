@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 pub struct Tuple {
     pub x: f64,
     pub y: f64,
@@ -18,6 +20,18 @@ impl Tuple {
     }
     pub fn is_vector(&self) -> bool {
         self.w == 0.0
+    }
+}
+
+impl Add for Tuple {
+    type Output = Tuple;
+    fn add(self, other: Tuple) -> Tuple {
+        Tuple {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+            w: self.w + other.w,
+        }
     }
 }
 
@@ -55,5 +69,16 @@ mod tests {
         assert_eq!(tuple.y, 2.0);
         assert_eq!(tuple.z, 3.0);
         assert_eq!(tuple.w, 0.0);
+    }
+
+    #[test]
+    fn add_two_tuples() {
+        let tuple1 = Tuple { x: 3.0, y: -2.0, z: 5.0, w: 1.0 };
+        let tuple2 = Tuple { x: -2.0, y: 3.0, z: 1.0, w: 0.0 };
+        let tuple3 = tuple1 + tuple2;
+        assert_eq!(tuple3.x, 1.0);
+        assert_eq!(tuple3.y, 1.0);
+        assert_eq!(tuple3.z, 6.0);
+        assert_eq!(tuple3.w, 1.0);
     }
 }
