@@ -44,6 +44,16 @@ impl Tuple {
     pub fn dot(&self, other: Tuple) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
     }
+
+    // Only implements for 3D vectors
+    pub fn cross(&self, other: &Tuple) -> Tuple {
+        Tuple {
+            x: self.y * other.z - self.z * other.y,
+            y: self.z * other.x - self.x * other.z,
+            z: self.x * other.y - self.y * other.x,
+            w: 0.0,
+        }
+    }
 }
 
 impl Add for Tuple {
@@ -272,5 +282,13 @@ mod tests {
         let vector1 = Tuple::vector(1.0, 2.0, 3.0);
         let vector2 = Tuple::vector(2.0, 3.0, 4.0);
         assert_eq!(vector1.dot(vector2), 20.0);
+    }
+
+    #[test]
+    fn vector_cross_product() {
+        let vector1 = Tuple::vector(1.0, 2.0, 3.0);
+        let vector2 = Tuple::vector(2.0, 3.0, 4.0);
+        assert_abs_diff_eq!(vector1.cross(&vector2), Tuple::vector(-1.0, 2.0, -1.0));
+        assert_abs_diff_eq!(vector2.cross(&vector1), Tuple::vector(1.0, -2.0, 1.0));
     }
 }
