@@ -41,7 +41,7 @@ impl Tuple {
         }
     }
 
-    pub fn dot(&self, other: Tuple) -> f64 {
+    pub fn dot(&self, other: &Tuple) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
     }
 
@@ -281,7 +281,7 @@ mod tests {
     fn tuple_dot_product() {
         let vector1 = Tuple::vector(1.0, 2.0, 3.0);
         let vector2 = Tuple::vector(2.0, 3.0, 4.0);
-        assert_eq!(vector1.dot(vector2), 20.0);
+        assert_eq!(vector1.dot(&vector2), 20.0);
     }
 
     #[test]
