@@ -1,4 +1,4 @@
-use std::ops::{Add, Mul, Neg, Sub};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Debug)]
 pub struct Tuple {
@@ -72,6 +72,18 @@ impl Mul<f64> for Tuple {
             y: self.y * scalar,
             z: self.z * scalar,
             w: self.w * scalar,
+        }
+    }
+}
+
+impl Div<f64> for Tuple {
+    type Output = Tuple;
+    fn div(self, scalar: f64) -> Self::Output {
+        Tuple {
+            x: self.x / scalar,
+            y: self.y / scalar,
+            z: self.z / scalar,
+            w: self.w / scalar,
         }
     }
 }
@@ -190,6 +202,13 @@ mod tests {
     fn multiply_tuple_by_fraction() {
         let tuple = Tuple::new(1.0, -2.0, 3.0, -4.0);
         let result = tuple * 0.5;
+        assert_abs_diff_eq!(result, Tuple::new(0.5, -1.0, 1.5, -2.0));
+    }
+
+    #[test]
+    fn divide_tuple_by_scalar() {
+        let tuple = Tuple::new(1.0, -2.0, 3.0, -4.0);
+        let result = tuple / 2.0;
         assert_abs_diff_eq!(result, Tuple::new(0.5, -1.0, 1.5, -2.0));
     }
 }
