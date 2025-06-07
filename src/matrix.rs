@@ -32,6 +32,18 @@ impl Matrix {
         matrix.data[3][3] = 1.0;
         matrix
     }
+
+    pub fn transpose(&self) -> Self {
+        let mut result = Matrix::new(self.cols, self.rows);
+
+        for row in 0..self.rows {
+            for col in 0..self.cols {
+                result.data[col][row] = self.data[row][col];
+            }
+        }
+
+        result
+    }
 }
 
 impl Index<(usize, usize)> for Matrix {
@@ -250,5 +262,32 @@ mod tests {
         let identity = Matrix::identity();
 
         assert_eq!(identity * tuple_a, tuple_a);
+    }
+
+    #[test]
+    fn matrix_can_be_transposed() {
+        let matrix_a = Matrix::from_vec(vec![
+            vec![0.0, 9.0, 3.0, 0.0],
+            vec![9.0, 8.0, 0.0, 8.0],
+            vec![1.0, 8.0, 5.0, 3.0],
+            vec![0.0, 0.0, 5.0, 8.0],
+        ]);
+
+        let expected = Matrix::from_vec(vec![
+            vec![0.0, 9.0, 1.0, 0.0],
+            vec![9.0, 8.0, 8.0, 0.0],
+            vec![3.0, 0.0, 5.0, 5.0],
+            vec![0.0, 8.0, 3.0, 8.0],
+        ]);
+
+        assert_eq!(matrix_a.transpose(), expected);
+    }
+
+    #[test]
+    fn transposing_identity_matrix_equals_identity_matrix() {
+        let identity = Matrix::identity();
+        let transposed_identity = identity.transpose();
+
+        assert_eq!(transposed_identity, Matrix::identity());
     }
 }
