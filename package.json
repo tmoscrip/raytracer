@@ -2,6 +2,7 @@
   "scripts": {
     "build": "wasm-pack build --target no-modules --out-dir www/pkg",
     "start": "python3 -m http.server --directory www",
-    "test": "cargo test"
+    "test": "cargo test",
+    "test:watch": "cargo watch -c -x test"
   }
 }
