@@ -17,8 +17,8 @@ impl Scene {
         Scene { width, height, buffer, time: 0.0 }
     }
 
-    pub fn render(&mut self) {
-        self.time += 0.05;
+    pub fn render(&mut self, dt: f32) {
+        self.time += dt;
         for y in 0..self.height {
             for x in 0..self.width {
                 let i = ((y * self.width + x) * 4) as usize;

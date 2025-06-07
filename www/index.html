@@ -33,10 +33,15 @@
         const ctx = canvas.getContext("2d");
         const scene = new Scene(canvas.width, canvas.height);
         const buffer_size = canvas.width * canvas.height * 4;
+        let lastTime = 0;
 
-        function renderLoop() {
-          // Generate the next frame in Rust
-          scene.render();
+        function renderLoop(currentTime) {
+          // Calculate delta time in seconds
+          const deltaTime = (currentTime - lastTime) / 1000.0;
+          lastTime = currentTime;
+
+          // Generate the next frame in Rust with delta time
+          scene.render(deltaTime);
 
           // Get a pointer to the image buffer in wasm memory
           const pointer = scene.get_image_buffer_pointer();
