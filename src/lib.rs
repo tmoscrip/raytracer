@@ -1,5 +1,7 @@
 use wasm_bindgen::prelude::*;
 
+pub mod geometry;
+
 #[wasm_bindgen]
 pub struct Scene {
     width: u32,
