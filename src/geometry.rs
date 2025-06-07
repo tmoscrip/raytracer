@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::ops::{Add, Sub};
 
 pub struct Tuple {
     pub x: f64,
@@ -31,6 +31,18 @@ impl Add for Tuple {
             y: self.y + other.y,
             z: self.z + other.z,
             w: self.w + other.w,
+        }
+    }
+}
+
+impl Sub for Tuple {
+    type Output = Tuple;
+    fn sub(self, other: Tuple) -> Tuple {
+        Tuple {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+            w: self.w - other.w,
         }
     }
 }
@@ -80,5 +92,38 @@ mod tests {
         assert_eq!(tuple3.y, 1.0);
         assert_eq!(tuple3.z, 6.0);
         assert_eq!(tuple3.w, 1.0);
+    }
+
+    #[test]
+    fn subtract_two_points_returns_vector() {
+        let point1 = Tuple::point(3.0, 2.0, 1.0);
+        let point2 = Tuple::point(5.0, 6.0, 7.0);
+        let vector = point1 - point2;
+        assert_eq!(vector.x, -2.0);
+        assert_eq!(vector.y, -4.0);
+        assert_eq!(vector.z, -6.0);
+        assert_eq!(vector.is_vector(), true);
+    }
+
+    #[test]
+    fn subtract_vector_from_point_returns_point() {
+        let point = Tuple::point(3.0, 2.0, 1.0);
+        let vector = Tuple::vector(5.0, 6.0, 7.0);
+        let result = point - vector;
+        assert_eq!(result.x, -2.0);
+        assert_eq!(result.y, -4.0);
+        assert_eq!(result.z, -6.0);
+        assert_eq!(result.is_point(), true);
+    }
+
+    #[test]
+    fn subtract_two_vectors_returns_vector() {
+        let vector1 = Tuple::vector(3.0, 2.0, 1.0);
+        let vector2 = Tuple::vector(5.0, 6.0, 7.0);
+        let vector = vector1 - vector2;
+        assert_eq!(vector.x, -2.0);
+        assert_eq!(vector.y, -4.0);
+        assert_eq!(vector.z, -6.0);
+        assert_eq!(vector.is_vector(), true);
     }
 }
