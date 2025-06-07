@@ -21,6 +21,10 @@ impl Simulation {
             projectile.pos = projectile.pos + projectile.vel;
         }
     }
+
+    pub fn get_projectiles(&self) -> &Vec<Projectile> {
+        &self.projectiles
+    }
 }
 
 #[cfg(test)]

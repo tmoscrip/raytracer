@@ -1,4 +1,8 @@
 use crate::colour::Colour;
+use crate::environment::Environment;
+use crate::projectile::Projectile;
+use crate::simulation::Simulation;
+use crate::tuple::Tuple;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -8,6 +12,10 @@ pub struct Scene {
     colours: Vec<Colour>,
     buffer: Vec<u8>,
     time: f32,
+    // Simulation fields
+    simulation: Simulation,
+    tick_count: u32,
+    max_ticks: u32,
 }
 
 #[wasm_bindgen]
@@ -19,28 +27,75 @@ impl Scene {
         let buffer_size = (width * height * 4) as usize;
         let buffer = vec![0; buffer_size];
 
+        let gravity = Tuple::vector(0.0, -0.3, 0.0);
+        let wind = Tuple::vector(-0.15, 0.0, 0.0); // No wind for clearer demonstration
+        let environment = Environment::new(gravity, wind);
+
+        // Create a projectile starting from bottom left with moderate upward velocity
+        let start_pos = Tuple::point(width as f64 * 0.4, height as f64 * 0.2, 0.0);
+        let velocity = Tuple::vector(width as f64 * 0.01, height as f64 * 0.025, 0.0); // Much slower velocity
+        let projectile = Projectile::new(start_pos, velocity);
+
+        // Create simulation
+        let simulation = Simulation::new(environment, vec![projectile]);
+
         Scene {
             width,
             height,
             colours,
             buffer,
             time: 0.0,
+            simulation,
+            tick_count: 0,
+            max_ticks: 100,
         }
     }
 
     pub fn render(&mut self, dt: f32) {
         self.time += dt;
 
-        // Update colours array instead of buffer directly
+        // Clear background to black for better visibility of projectile
         for y in 0..self.height {
             for x in 0..self.width {
                 let pixel_index = (y * self.width + x) as usize;
+                self.colours[pixel_index] = Colour::new(0.0, 0.0, 0.0); // Black background
+            }
+        }
 
-                let r = 0.5 * (1.0 + (self.time + (x as f32 * 0.01)).sin());
-                let g = 0.5 * (1.0 + (self.time + (y as f32 * 0.02)).sin());
-                let b = 0.5 * (1.0 + (self.time + ((x + y) as f32 * 0.03)).sin());
+        // Run simulation tick and reset when reaching max ticks for looping
+        if self.tick_count < self.max_ticks {
+            self.simulation.tick();
+            self.tick_count += 1;
+        } else {
+            // Reset simulation for continuous looping
+            self.reset_simulation();
+        }
 
-                self.colours[pixel_index] = Colour::new(r as f64, g as f64, b as f64);
+        // Draw projectile as red dot only if within viewport bounds
+        let projectiles = self.simulation.get_projectiles();
+        if !projectiles.is_empty() {
+            let projectile = &projectiles[0];
+
+            // Check if projectile is within viewport bounds before drawing
+            if projectile.pos.x >= 0.0
+                && projectile.pos.x < self.width as f64
+                && projectile.pos.y >= 0.0
+                && projectile.pos.y < self.height as f64
+            {
+                let x = projectile.pos.x as u32;
+                let y = (self.height as f64 - projectile.pos.y) as u32; // Flip Y coordinate for screen space
+
+                // Draw a larger red dot (5x5 pixels) for better visibility
+                for dy in 0..5 {
+                    for dx in 0..5 {
+                        let px = x + dx;
+                        let py = y + dy;
+                        if px < self.width && py < self.height {
+                            self.write_pixel(px, py, Colour::new(1.0, 0.0, 0.0));
+                            // Red dot
+                        }
+                    }
+                }
             }
         }
 
@@ -50,6 +105,10 @@ impl Scene {
 
     pub fn get_image_buffer_pointer(&self) -> *const u8 {
         self.buffer.as_ptr()
+    }
+
+    pub fn reset(&mut self) {
+        self.reset_simulation();
     }
 
     // Helper method to convert colours to buffer
@@ -96,6 +155,21 @@ impl Scene {
         } else {
             Colour::new(0.0, 0.0, 0.0) // Return black for out-of-bounds
         }
+    }
+
+    pub fn reset_simulation(&mut self) {
+        // Reset the simulation to initial state
+        let gravity = Tuple::vector(0.0, -0.3, 0.0);
+        let wind = Tuple::vector(-0.15, 0.0, 0.0); // Wind for clearer demonstration
+        let environment = Environment::new(gravity, wind);
+
+        // Reset projectile to starting position with moderate upward velocity
+        let start_pos = Tuple::point(self.width as f64 * 0.4, self.height as f64 * 0.2, 0.0);
+        let velocity = Tuple::vector(self.width as f64 * 0.01, self.height as f64 * 0.025, 0.0); // Much slower velocity
+        let projectile = Projectile::new(start_pos, velocity);
+
+        self.simulation = Simulation::new(environment, vec![projectile]);
+        self.tick_count = 0;
     }
 }
 
