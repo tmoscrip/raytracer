@@ -1,6 +1,9 @@
 use wasm_bindgen::prelude::*;
 
+pub mod environment;
 pub mod geometry;
+pub mod projectile;
+pub mod simulation;
 
 #[wasm_bindgen]
 pub struct Scene {
@@ -16,7 +19,12 @@ impl Scene {
     pub fn new(width: u32, height: u32) -> Scene {
         let size = (width * height * 4) as usize;
         let buffer = vec![0; size];
-        Scene { width, height, buffer, time: 0.0 }
+        Scene {
+            width,
+            height,
+            buffer,
+            time: 0.0,
+        }
     }
 
     pub fn render(&mut self, dt: f32) {
@@ -53,6 +61,10 @@ mod tests {
 
         assert_eq!(scene.width, width);
         assert_eq!(scene.height, height);
-        assert_eq!(scene.buffer.len(), (width * height * 4) as usize, "Buffer should be width * height * 4");
+        assert_eq!(
+            scene.buffer.len(),
+            (width * height * 4) as usize,
+            "Buffer should be width * height * 4"
+        );
     }
 }
