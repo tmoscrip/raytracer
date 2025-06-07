@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build": "wasm-pack build --target no-modules --out-dir www/pkg",
-    "start": "python3 -m http.server --directory www"
+    "start": "python3 -m http.server --directory www",
+    "test": "cargo test"
   }
 }
