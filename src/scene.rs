@@ -16,6 +16,14 @@ pub struct Scene {
     simulation: Simulation,
     tick_count: u32,
     max_ticks: u32,
+    current_start_x: f64,
+    current_start_y: f64,
+    current_vel_x: f64,
+    current_vel_y: f64,
+    current_gravity_x: f64,
+    current_gravity_y: f64,
+    current_wind_x: f64,
+    current_wind_y: f64,
 }
 
 #[wasm_bindgen]
@@ -39,6 +47,15 @@ impl Scene {
             ),
             tick_count: 0,
             max_ticks: 100,
+            // Initialize with default parameters
+            current_start_x: width as f64 * 0.1,
+            current_start_y: height as f64 * 0.2,
+            current_vel_x: width as f64 * 0.02,
+            current_vel_y: height as f64 * 0.025,
+            current_gravity_x: 0.0,
+            current_gravity_y: -0.25,
+            current_wind_x: -0.15,
+            current_wind_y: 0.0,
         };
 
         scene.reset_simulation();
@@ -105,6 +122,57 @@ impl Scene {
         self.reset_simulation();
     }
 
+    #[wasm_bindgen]
+    pub fn reset_with_parameters(
+        &mut self,
+        start_x: f64,
+        start_y: f64,
+        vel_x: f64,
+        vel_y: f64,
+        gravity_x: f64,
+        gravity_y: f64,
+        wind_x: f64,
+        wind_y: f64,
+    ) {
+        self.update_simulation_parameters(
+            start_x, start_y, vel_x, vel_y, gravity_x, gravity_y, wind_x, wind_y,
+        );
+    }
+
+    #[wasm_bindgen]
+    pub fn update_simulation_parameters(
+        &mut self,
+        start_x: f64,
+        start_y: f64,
+        vel_x: f64,
+        vel_y: f64,
+        gravity_x: f64,
+        gravity_y: f64,
+        wind_x: f64,
+        wind_y: f64,
+    ) {
+        // Store the current parameters for looping
+        self.current_start_x = start_x;
+        self.current_start_y = start_y;
+        self.current_vel_x = vel_x;
+        self.current_vel_y = vel_y;
+        self.current_gravity_x = gravity_x;
+        self.current_gravity_y = gravity_y;
+        self.current_wind_x = wind_x;
+        self.current_wind_y = wind_y;
+
+        let gravity = Tuple::vector(gravity_x, gravity_y, 0.0);
+        let wind = Tuple::vector(wind_x, wind_y, 0.0);
+        let environment = Environment::new(gravity, wind);
+
+        let start_pos = Tuple::point(start_x, start_y, 0.0);
+        let velocity = Tuple::vector(vel_x, vel_y, 0.0);
+        let projectile = Projectile::new(start_pos, velocity);
+
+        self.simulation = Simulation::new(environment, vec![projectile]);
+        self.tick_count = 0;
+    }
+
     // Helper method to convert colours to buffer
     fn update_buffer_from_colours(&mut self) {
         for (i, colour) in self.colours.iter().enumerate() {
@@ -152,14 +220,13 @@ impl Scene {
     }
 
     pub fn reset_simulation(&mut self) {
-        // Reset the simulation to initial state
-        let gravity = Tuple::vector(0.0, -0.25, 0.0);
-        let wind = Tuple::vector(-0.15, 0.0, 0.0); // Wind for clearer demonstration
+        // Reset the simulation using current stored parameters
+        let gravity = Tuple::vector(self.current_gravity_x, self.current_gravity_y, 0.0);
+        let wind = Tuple::vector(self.current_wind_x, self.current_wind_y, 0.0);
         let environment = Environment::new(gravity, wind);
 
-        // Reset projectile to starting position with moderate upward velocity
-        let start_pos = Tuple::point(self.width as f64 * 0.1, self.height as f64 * 0.2, 0.0);
-        let velocity = Tuple::vector(self.width as f64 * 0.02, self.height as f64 * 0.025, 0.0); // Much slower velocity
+        let start_pos = Tuple::point(self.current_start_x, self.current_start_y, 0.0);
+        let velocity = Tuple::vector(self.current_vel_x, self.current_vel_y, 0.0);
         let projectile = Projectile::new(start_pos, velocity);
 
         self.simulation = Simulation::new(environment, vec![projectile]);
