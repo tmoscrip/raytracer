@@ -44,6 +44,41 @@ impl Matrix {
 
         result
     }
+
+    pub fn determinant(&self) -> f64 {
+        if self.rows == 2 && self.cols == 2 {
+            self.data[0][0] * self.data[1][1] - self.data[0][1] * self.data[1][0]
+        } else {
+            // TODO: Implement determinant for larger matrices
+            0.0
+        }
+    }
+
+    // Row to remove
+    // Column to remove
+    pub fn submatrix(&self, row: usize, col: usize) -> Matrix {
+        let mut result = Matrix::new(self.rows - 1, self.cols - 1);
+
+        let mut result_row = 0;
+        for matrix_row in 0..self.rows {
+            if matrix_row == row {
+                continue;
+            }
+
+            let mut result_col = 0;
+            for matrix_col in 0..self.cols {
+                if matrix_col == col {
+                    continue;
+                }
+
+                result.data[result_row][result_col] = self.data[matrix_row][matrix_col];
+                result_col += 1;
+            }
+            result_row += 1;
+        }
+
+        result
+    }
 }
 
 impl Index<(usize, usize)> for Matrix {
@@ -289,5 +324,43 @@ mod tests {
         let transposed_identity = identity.transpose();
 
         assert_eq!(transposed_identity, Matrix::identity());
+    }
+
+    #[test]
+    fn determinant_of_2x2_matrix() {
+        let matrix = Matrix::from_vec(vec![vec![1.0, 5.0], vec![-3.0, 2.0]]);
+
+        assert_eq!(matrix.determinant(), 17.0);
+    }
+
+    #[test]
+    fn submatrix_of_3x3_matrix_is_2x2_matrix() {
+        let matrix_a = Matrix::from_vec(vec![
+            vec![1.0, 5.0, 0.0],
+            vec![-3.0, 2.0, 7.0],
+            vec![0.0, 6.0, -3.0],
+        ]);
+
+        let expected = Matrix::from_vec(vec![vec![-3.0, 2.0], vec![0.0, 6.0]]);
+
+        assert_eq!(matrix_a.submatrix(0, 2), expected);
+    }
+
+    #[test]
+    fn submatrix_of_4x4_matrix_is_3x3_matrix() {
+        let matrix_a = Matrix::from_vec(vec![
+            vec![-6.0, 1.0, 1.0, 6.0],
+            vec![-8.0, 5.0, 8.0, 6.0],
+            vec![-1.0, 0.0, 8.0, 2.0],
+            vec![-7.0, 1.0, -1.0, 1.0],
+        ]);
+
+        let expected = Matrix::from_vec(vec![
+            vec![-6.0, 1.0, 6.0],
+            vec![-8.0, 8.0, 6.0],
+            vec![-7.0, -1.0, 1.0],
+        ]);
+
+        assert_eq!(matrix_a.submatrix(2, 1), expected);
     }
 }
