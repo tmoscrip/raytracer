@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub};
+use std::ops::{Add, Neg, Sub};
 
 pub struct Tuple {
     pub x: f64,
@@ -47,20 +47,42 @@ impl Sub for Tuple {
     }
 }
 
+impl Neg for Tuple {
+    type Output = Tuple;
+    fn neg(self) -> Tuple {
+        Tuple {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+            w: -self.w,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn tuple_point_is_point() {
-        let tuple = Tuple { x: 1.0, y: 2.0, z: 3.0, w: 1.0 };
+        let tuple = Tuple {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+            w: 1.0,
+        };
         assert_eq!(tuple.is_point(), true);
         assert_eq!(tuple.is_vector(), false);
     }
 
     #[test]
     fn tuple_vector_is_vector() {
-        let tuple = Tuple { x: 1.0, y: 2.0, z: 3.0, w: 0.0 };
+        let tuple = Tuple {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+            w: 0.0,
+        };
         assert_eq!(tuple.is_point(), false);
         assert_eq!(tuple.is_vector(), true);
     }
@@ -85,8 +107,18 @@ mod tests {
 
     #[test]
     fn add_two_tuples() {
-        let tuple1 = Tuple { x: 3.0, y: -2.0, z: 5.0, w: 1.0 };
-        let tuple2 = Tuple { x: -2.0, y: 3.0, z: 1.0, w: 0.0 };
+        let tuple1 = Tuple {
+            x: 3.0,
+            y: -2.0,
+            z: 5.0,
+            w: 1.0,
+        };
+        let tuple2 = Tuple {
+            x: -2.0,
+            y: 3.0,
+            z: 1.0,
+            w: 0.0,
+        };
         let tuple3 = tuple1 + tuple2;
         assert_eq!(tuple3.x, 1.0);
         assert_eq!(tuple3.y, 1.0);
@@ -125,5 +157,31 @@ mod tests {
         assert_eq!(vector.y, -4.0);
         assert_eq!(vector.z, -6.0);
         assert_eq!(vector.is_vector(), true);
+    }
+
+    #[test]
+    fn subtract_vector_from_zero_vector_returns_opposite_vector() {
+        let zero = Tuple::vector(0.0, 0.0, 0.0);
+        let vector = Tuple::vector(1.0, -2.0, 3.0);
+        let result = zero - vector;
+        assert_eq!(result.x, -1.0);
+        assert_eq!(result.y, 2.0);
+        assert_eq!(result.z, -3.0);
+        assert_eq!(result.is_vector(), true);
+    }
+
+    #[test]
+    fn negate_tuple() {
+        let tuple = Tuple {
+            x: 1.0,
+            y: -2.0,
+            z: 3.0,
+            w: -4.0,
+        };
+        let negated = -tuple;
+        assert_eq!(negated.x, -1.0);
+        assert_eq!(negated.y, 2.0);
+        assert_eq!(negated.z, -3.0);
+        assert_eq!(negated.w, 4.0);
     }
 }
