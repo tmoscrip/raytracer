@@ -8,6 +8,10 @@ pub struct Tuple {
 }
 
 impl Tuple {
+    pub fn new(x: f64, y: f64, z: f64, w: f64) -> Tuple {
+        Tuple { x, y, z, w }
+    }
+
     pub fn point(x: f64, y: f64, z: f64) -> Tuple {
         Tuple { x, y, z, w: 1.0 }
     }
@@ -185,12 +189,7 @@ mod tests {
 
     #[test]
     fn negate_tuple() {
-        let tuple = Tuple {
-            x: 1.0,
-            y: -2.0,
-            z: 3.0,
-            w: -4.0,
-        };
+        let tuple = Tuple::new(1.0, -2.0, 3.0, -4.0);
         let negated = -tuple;
         assert_abs_diff_eq!(negated.x, -1.0);
         assert_abs_diff_eq!(negated.y, 2.0);
@@ -200,12 +199,7 @@ mod tests {
 
     #[test]
     fn multiply_tuple_by_scalar() {
-        let tuple = Tuple {
-            x: 1.0,
-            y: -2.0,
-            z: 3.0,
-            w: -4.0,
-        };
+        let tuple = Tuple::new(1.0, -2.0, 3.0, -4.0);
         let result = tuple * 3.5;
         assert_abs_diff_eq!(result.x, 3.5);
         assert_abs_diff_eq!(result.y, -7.0);
@@ -215,12 +209,7 @@ mod tests {
 
     #[test]
     fn multiply_tuple_by_fraction() {
-        let tuple = Tuple {
-            x: 1.0,
-            y: -2.0,
-            z: 3.0,
-            w: -4.0,
-        };
+        let tuple = Tuple::new(1.0, -2.0, 3.0, -4.0);
         let result = tuple * 0.5;
         assert_abs_diff_eq!(result.x, 0.5);
         assert_abs_diff_eq!(result.y, -1.0);
