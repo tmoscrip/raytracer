@@ -31,6 +31,15 @@ impl Tuple {
     pub fn magnitude(&self) -> f64 {
         (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).sqrt()
     }
+
+    pub fn normalise(&self) -> Tuple {
+        Tuple {
+            x: self.x / self.magnitude(),
+            y: self.y / self.magnitude(),
+            z: self.z / self.magnitude(),
+            w: self.w / self.magnitude(),
+        }
+    }
 }
 
 impl Add for Tuple {
@@ -230,5 +239,27 @@ mod tests {
         for (vector, expected) in test_cases {
             assert_abs_diff_eq!(vector.magnitude(), expected);
         }
+    }
+
+    #[test]
+    fn vector_normalise() {
+        let test_cases = [
+            (Tuple::vector(4.0, 0.0, 0.0), Tuple::vector(1.0, 0.0, 0.0)),
+            (
+                Tuple::vector(1.0, 2.0, 3.0),
+                Tuple::vector(0.26726, 0.53452, 0.80178),
+            ),
+        ];
+
+        for (vector, expected) in test_cases {
+            assert_abs_diff_eq!(vector.normalise(), expected, epsilon = 0.0001);
+        }
+    }
+
+    #[test]
+    fn magnitude_of_normalised_vector() {
+        let vector = Tuple::vector(1.0, 2.0, 3.0);
+        let normalised = vector.normalise();
+        assert_eq!(normalised.magnitude(), 1.0)
     }
 }
