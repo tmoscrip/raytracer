@@ -33,6 +33,72 @@ impl Matrix {
         matrix
     }
 
+    pub fn translation(x: f64, y: f64, z: f64) -> Matrix {
+        let mut matrix = Matrix::identity();
+        matrix.data[0][3] = x;
+        matrix.data[1][3] = y;
+        matrix.data[2][3] = z;
+        matrix
+    }
+
+    pub fn scaling(x: f64, y: f64, z: f64) -> Matrix {
+        let mut matrix = Matrix::identity();
+        matrix.data[0][0] = x;
+        matrix.data[1][1] = y;
+        matrix.data[2][2] = z;
+        matrix
+    }
+
+    pub fn rotation_x(radians: f64) -> Matrix {
+        let mut matrix = Matrix::identity();
+        let cos_r = radians.cos();
+        let sin_r = radians.sin();
+
+        matrix.data[1][1] = cos_r;
+        matrix.data[1][2] = -sin_r;
+        matrix.data[2][1] = sin_r;
+        matrix.data[2][2] = cos_r;
+
+        matrix
+    }
+
+    pub fn rotation_y(radians: f64) -> Matrix {
+        let mut matrix = Matrix::identity();
+        let cos_r = radians.cos();
+        let sin_r = radians.sin();
+
+        matrix.data[0][0] = cos_r;
+        matrix.data[0][2] = sin_r;
+        matrix.data[2][0] = -sin_r;
+        matrix.data[2][2] = cos_r;
+
+        matrix
+    }
+
+    pub fn rotation_z(radians: f64) -> Matrix {
+        let mut matrix = Matrix::identity();
+        let cos_r = radians.cos();
+        let sin_r = radians.sin();
+
+        matrix.data[0][0] = cos_r;
+        matrix.data[0][1] = -sin_r;
+        matrix.data[1][0] = sin_r;
+        matrix.data[1][1] = cos_r;
+
+        matrix
+    }
+
+    pub fn shearing(xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) -> Matrix {
+        let mut matrix = Matrix::identity();
+        matrix.data[0][1] = xy;
+        matrix.data[0][2] = xz;
+        matrix.data[1][0] = yx;
+        matrix.data[1][2] = yz;
+        matrix.data[2][0] = zx;
+        matrix.data[2][1] = zy;
+        matrix
+    }
+
     pub fn transpose(&self) -> Self {
         let mut result = Matrix::new(self.cols, self.rows);
 
@@ -601,5 +667,239 @@ mod tests {
         let result = c * matrix_b.inverse();
 
         assert_abs_diff_eq!(result, matrix_a, epsilon = 0.0001);
+    }
+
+    #[test]
+    fn multiplying_by_translation_matrix() {
+        let transform = Matrix::translation(5.0, -3.0, 2.0);
+        let p = Tuple::point(-3.0, 4.0, 5.0);
+        let result = transform * p;
+        let expected = Tuple::point(2.0, 1.0, 7.0);
+
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn multiplying_by_inverse_of_translation_matrix() {
+        let transform = Matrix::translation(5.0, -3.0, 2.0);
+        let inv = transform.inverse();
+        let p = Tuple::point(-3.0, 4.0, 5.0);
+        let result = inv * p;
+        let expected = Tuple::point(-8.0, 7.0, 3.0);
+
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn translation_does_not_affect_vectors() {
+        let transform = Matrix::translation(5.0, -3.0, 2.0);
+        let v = Tuple::vector(-3.0, 4.0, 5.0);
+        let result = transform * v;
+
+        assert_abs_diff_eq!(result, v);
+    }
+
+    #[test]
+    fn scaling_matrix_applied_to_point() {
+        let transform = Matrix::scaling(2.0, 3.0, 4.0);
+        let p = Tuple::point(-4.0, 6.0, 8.0);
+        let result = transform * p;
+        let expected = Tuple::point(-8.0, 18.0, 32.0);
+
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn scaling_matrix_applied_to_vector() {
+        let transform = Matrix::scaling(2.0, 3.0, 4.0);
+        let v = Tuple::vector(-4.0, 6.0, 8.0);
+        let result = transform * v;
+        let expected = Tuple::vector(-8.0, 18.0, 32.0);
+
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn multiplying_by_inverse_of_scaling_matrix() {
+        let transform = Matrix::scaling(2.0, 3.0, 4.0);
+        let inv = transform.inverse();
+        let v = Tuple::vector(-4.0, 6.0, 8.0);
+        let result = inv * v;
+        let expected = Tuple::vector(-2.0, 2.0, 2.0);
+
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn reflection_is_scaling_by_negative_value() {
+        let transform = Matrix::scaling(-1.0, 1.0, 1.0);
+        let p = Tuple::point(2.0, 3.0, 4.0);
+        let result = transform * p;
+        let expected = Tuple::point(-2.0, 3.0, 4.0);
+
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn rotating_point_around_x_axis() {
+        let p = Tuple::point(0.0, 1.0, 0.0);
+        let half_quarter = Matrix::rotation_x(std::f64::consts::PI / 4.0);
+        let full_quarter = Matrix::rotation_x(std::f64::consts::PI / 2.0);
+
+        let half_result = half_quarter * p;
+        let expected_half = Tuple::point(
+            0.0,
+            std::f64::consts::SQRT_2 / 2.0,
+            std::f64::consts::SQRT_2 / 2.0,
+        );
+        assert_abs_diff_eq!(half_result, expected_half);
+
+        let full_result = full_quarter * p;
+        let expected_full = Tuple::point(0.0, 0.0, 1.0);
+        assert_abs_diff_eq!(full_result, expected_full);
+    }
+
+    #[test]
+    fn inverse_of_x_rotation_rotates_in_opposite_direction() {
+        let p = Tuple::point(0.0, 1.0, 0.0);
+        let half_quarter = Matrix::rotation_x(std::f64::consts::PI / 4.0);
+        let inv = half_quarter.inverse();
+
+        let result = inv * p;
+        let expected = Tuple::point(
+            0.0,
+            std::f64::consts::SQRT_2 / 2.0,
+            -std::f64::consts::SQRT_2 / 2.0,
+        );
+
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn rotating_point_around_y_axis() {
+        let p = Tuple::point(0.0, 0.0, 1.0);
+        let half_quarter = Matrix::rotation_y(std::f64::consts::PI / 4.0);
+        let full_quarter = Matrix::rotation_y(std::f64::consts::PI / 2.0);
+
+        let half_result = half_quarter * p;
+        let expected_half = Tuple::point(
+            std::f64::consts::SQRT_2 / 2.0,
+            0.0,
+            std::f64::consts::SQRT_2 / 2.0,
+        );
+        assert_abs_diff_eq!(half_result, expected_half);
+
+        let full_result = full_quarter * p;
+        let expected_full = Tuple::point(1.0, 0.0, 0.0);
+        assert_abs_diff_eq!(full_result, expected_full);
+    }
+
+    #[test]
+    fn rotating_point_around_z_axis() {
+        let p = Tuple::point(0.0, 1.0, 0.0);
+        let half_quarter = Matrix::rotation_z(std::f64::consts::PI / 4.0);
+        let full_quarter = Matrix::rotation_z(std::f64::consts::PI / 2.0);
+
+        let half_result = half_quarter * p;
+        let expected_half = Tuple::point(
+            -std::f64::consts::SQRT_2 / 2.0,
+            std::f64::consts::SQRT_2 / 2.0,
+            0.0,
+        );
+        assert_abs_diff_eq!(half_result, expected_half);
+
+        let full_result = full_quarter * p;
+        let expected_full = Tuple::point(-1.0, 0.0, 0.0);
+        assert_abs_diff_eq!(full_result, expected_full);
+    }
+
+    #[test]
+    fn shearing_transformation_moves_x_in_proportion_to_y() {
+        let transform = Matrix::shearing(1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        let p = Tuple::point(2.0, 3.0, 4.0);
+        let result = transform * p;
+        let expected = Tuple::point(5.0, 3.0, 4.0);
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn shearing_transformation_moves_x_in_proportion_to_z() {
+        let transform = Matrix::shearing(0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+        let p = Tuple::point(2.0, 3.0, 4.0);
+        let result = transform * p;
+        let expected = Tuple::point(6.0, 3.0, 4.0);
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn shearing_transformation_moves_y_in_proportion_to_x() {
+        let transform = Matrix::shearing(0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
+        let p = Tuple::point(2.0, 3.0, 4.0);
+        let result = transform * p;
+        let expected = Tuple::point(2.0, 5.0, 4.0);
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn shearing_transformation_moves_y_in_proportion_to_z() {
+        let transform = Matrix::shearing(0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+        let p = Tuple::point(2.0, 3.0, 4.0);
+        let result = transform * p;
+        let expected = Tuple::point(2.0, 7.0, 4.0);
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn shearing_transformation_moves_z_in_proportion_to_x() {
+        let transform = Matrix::shearing(0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+        let p = Tuple::point(2.0, 3.0, 4.0);
+        let result = transform * p;
+        let expected = Tuple::point(2.0, 3.0, 6.0);
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn shearing_transformation_moves_z_in_proportion_to_y() {
+        let transform = Matrix::shearing(0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        let p = Tuple::point(2.0, 3.0, 4.0);
+        let result = transform * p;
+        let expected = Tuple::point(2.0, 3.0, 7.0);
+        assert_abs_diff_eq!(result, expected);
+    }
+
+    #[test]
+    fn individual_transformations_are_applied_in_sequence() {
+        let p = Tuple::point(1.0, 0.0, 1.0);
+        let a = Matrix::rotation_x(std::f64::consts::PI / 2.0);
+        let b = Matrix::scaling(5.0, 5.0, 5.0);
+        let c = Matrix::translation(10.0, 5.0, 7.0);
+
+        // apply rotation first
+        let p2 = a * p;
+        let expected_p2 = Tuple::point(1.0, -1.0, 0.0);
+        assert_abs_diff_eq!(p2, expected_p2, epsilon = 0.0001);
+
+        // then apply scaling
+        let p3 = b * p2;
+        let expected_p3 = Tuple::point(5.0, -5.0, 0.0);
+        assert_abs_diff_eq!(p3, expected_p3, epsilon = 0.0001);
+
+        // then apply translation
+        let p4 = c * p3;
+        let expected_p4 = Tuple::point(15.0, 0.0, 7.0);
+        assert_abs_diff_eq!(p4, expected_p4, epsilon = 0.0001);
+    }
+
+    #[test]
+    fn chained_transformations_must_be_applied_in_reverse_order() {
+        let p = Tuple::point(1.0, 0.0, 1.0);
+        let a = Matrix::rotation_x(std::f64::consts::PI / 2.0);
+        let b = Matrix::scaling(5.0, 5.0, 5.0);
+        let c = Matrix::translation(10.0, 5.0, 7.0);
+
+        let t = c * b * a;
+        let result = t * p;
+        let expected = Tuple::point(15.0, 0.0, 7.0);
+        assert_abs_diff_eq!(result, expected, epsilon = 0.0001);
     }
 }
