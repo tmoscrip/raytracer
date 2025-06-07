@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #111;
+      }
+      canvas {
+        border: 1px solid #333;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <script src="./pkg/raytracer.js"></script>
+    <script>
+      async function main() {
+        // The init function is exposed globally as wasm_bindgen.
+        // It returns a promise that resolves to the wasm instance's raw exports.
+        const exports = await wasm_bindgen();
+
+        // The JS wrapper classes (like Scene) are attached to the global wasm_bindgen object.
+        const { Scene } = wasm_bindgen;
+        // The memory is a raw export from the wasm instance.
+        const { memory } = exports;
+
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const scene = new Scene(canvas.width, canvas.height);
+        const buffer_size = canvas.width * canvas.height * 4;
+
+        function renderLoop() {
+          // Generate the next frame in Rust
+          scene.render();
+
+          // Get a pointer to the image buffer in wasm memory
+          const pointer = scene.get_image_buffer_pointer();
+
+          // Create a Javascript view into the wasm memory
+          const imageDataArray = new Uint8ClampedArray(
+            memory.buffer,
+            pointer,
+            buffer_size
+          );
+
+          // Create an ImageData object and draw it to the canvas
+          const imageData = new ImageData(
+            imageDataArray,
+            canvas.width,
+            canvas.height
+          );
+          ctx.putImageData(imageData, 0, 0);
+
+          // Request the next frame
+          requestAnimationFrame(renderLoop);
+        }
+
+        requestAnimationFrame(renderLoop);
+      }
+      main();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+# Rust build output
+/target/
+
+# Wasm-pack output
+/pkg/
+/www/pkg/
+
+# Node dependencies
+/node_modules/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
