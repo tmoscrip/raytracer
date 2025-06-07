@@ -27,28 +27,22 @@ impl Scene {
         let buffer_size = (width * height * 4) as usize;
         let buffer = vec![0; buffer_size];
 
-        let gravity = Tuple::vector(0.0, -0.3, 0.0);
-        let wind = Tuple::vector(-0.15, 0.0, 0.0); // No wind for clearer demonstration
-        let environment = Environment::new(gravity, wind);
-
-        // Create a projectile starting from bottom left with moderate upward velocity
-        let start_pos = Tuple::point(width as f64 * 0.4, height as f64 * 0.2, 0.0);
-        let velocity = Tuple::vector(width as f64 * 0.01, height as f64 * 0.025, 0.0); // Much slower velocity
-        let projectile = Projectile::new(start_pos, velocity);
-
-        // Create simulation
-        let simulation = Simulation::new(environment, vec![projectile]);
-
-        Scene {
+        let mut scene = Scene {
             width,
             height,
             colours,
             buffer,
             time: 0.0,
-            simulation,
+            simulation: Simulation::new(
+                Environment::new(Tuple::vector(0.0, 0.0, 0.0), Tuple::vector(0.0, 0.0, 0.0)),
+                vec![],
+            ),
             tick_count: 0,
             max_ticks: 100,
-        }
+        };
+
+        scene.reset_simulation();
+        scene
     }
 
     pub fn render(&mut self, dt: f32) {
@@ -159,13 +153,13 @@ impl Scene {
 
     pub fn reset_simulation(&mut self) {
         // Reset the simulation to initial state
-        let gravity = Tuple::vector(0.0, -0.3, 0.0);
+        let gravity = Tuple::vector(0.0, -0.25, 0.0);
         let wind = Tuple::vector(-0.15, 0.0, 0.0); // Wind for clearer demonstration
         let environment = Environment::new(gravity, wind);
 
         // Reset projectile to starting position with moderate upward velocity
-        let start_pos = Tuple::point(self.width as f64 * 0.4, self.height as f64 * 0.2, 0.0);
-        let velocity = Tuple::vector(self.width as f64 * 0.01, self.height as f64 * 0.025, 0.0); // Much slower velocity
+        let start_pos = Tuple::point(self.width as f64 * 0.1, self.height as f64 * 0.2, 0.0);
+        let velocity = Tuple::vector(self.width as f64 * 0.02, self.height as f64 * 0.025, 0.0); // Much slower velocity
         let projectile = Projectile::new(start_pos, velocity);
 
         self.simulation = Simulation::new(environment, vec![projectile]);
