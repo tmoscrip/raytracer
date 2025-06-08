@@ -41,6 +41,7 @@ pub struct RenderContext {
     buffer: Vec<u8>,
     time: f32,
     scene: TraceSphereScene,
+    tile_buffer: Vec<u8>,
 }
 
 #[wasm_bindgen]
@@ -59,6 +60,7 @@ impl RenderContext {
             buffer,
             time: 0.0,
             scene: TraceSphereScene::new(),
+            tile_buffer: Vec::new(),
         };
 
         context
@@ -193,6 +195,126 @@ impl RenderContext {
             self.buffer[buffer_index + 2] = b;
             self.buffer[buffer_index + 3] = 255; // Alpha
         }
+    }
+
+    // New method for chunked rendering - renders a specific tile
+    pub fn render_tile(
+        &mut self,
+        tile_x: u32,
+        tile_y: u32,
+        tile_width: u32,
+        tile_height: u32,
+        full_width: u32,
+        full_height: u32,
+    ) -> Vec<u8> {
+        #[cfg(target_arch = "wasm32")]
+        let start_time = performance_now();
+
+        // Pre-calculate constants to avoid repeated calculations
+        let ray_origin = Tuple::point(0.0, 0.0, -10.0);
+        let wall_z = 10.0;
+        let wall_size = 7.0;
+        let pixel_size = wall_size / full_height as f64;
+        let half = wall_size / 2.0;
+
+        // Create a buffer for this tile only
+        let tile_buffer_size = (tile_width * tile_height * 4) as usize;
+        let mut tile_buffer = vec![0u8; tile_buffer_size];
+
+        #[cfg(target_arch = "wasm32")]
+        let mut ray_count = 0;
+
+        for local_y in 0..tile_height {
+            let global_y = tile_y + local_y;
+            let world_y = half - pixel_size * global_y as f64;
+
+            for local_x in 0..tile_width {
+                let global_x = tile_x + local_x;
+                let world_x = half - pixel_size * global_x as f64;
+
+                let position = Tuple::point(world_x, world_y, wall_z);
+                let direction = (position - ray_origin).normalise();
+                let r = Ray::new(ray_origin, direction);
+
+                let xs = intersect(&self.scene.sphere, &r);
+                let hit = intersection::hit(&xs);
+
+                #[cfg(target_arch = "wasm32")]
+                {
+                    ray_count += 1;
+                }
+
+                let colour = if let Some(hit_intersection) = hit {
+                    let point = r.position(hit_intersection.t);
+                    let normalv = sphere::normal_at(&self.scene.sphere, &point);
+                    let eyev = -r.direction;
+
+                    materials::lighting(
+                        self.scene.sphere.material.clone(),
+                        self.scene.light.clone(),
+                        point,
+                        eyev,
+                        normalv,
+                    )
+                } else {
+                    Colour::new(0.0, 0.0, 0.0)
+                };
+
+                // Write to tile buffer
+                let tile_pixel_index = (local_y * tile_width + local_x) as usize;
+                let buffer_index = tile_pixel_index * 4;
+
+                let r = (colour.r.clamp(0.0, 1.0) * 255.0) as u8;
+                let g = (colour.g.clamp(0.0, 1.0) * 255.0) as u8;
+                let b = (colour.b.clamp(0.0, 1.0) * 255.0) as u8;
+
+                tile_buffer[buffer_index] = r;
+                tile_buffer[buffer_index + 1] = g;
+                tile_buffer[buffer_index + 2] = b;
+                tile_buffer[buffer_index + 3] = 255; // Alpha
+            }
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let total_time = performance_now() - start_time;
+            // console_log(&format!(
+            //     "Tile render: {}x{} at ({},{}) - {:.2}ms, {} rays",
+            //     tile_width, tile_height, tile_x, tile_y, total_time, ray_count
+            // ));
+        }
+
+        tile_buffer
+    }
+
+    // Render a tile and store it in the instance for memory access
+    pub fn render_tile_and_store(
+        &mut self,
+        tile_x: u32,
+        tile_y: u32,
+        tile_width: u32,
+        tile_height: u32,
+        full_width: u32,
+        full_height: u32,
+    ) {
+        self.tile_buffer = self.render_tile(
+            tile_x,
+            tile_y,
+            tile_width,
+            tile_height,
+            full_width,
+            full_height,
+        );
+    }
+
+    // Get pointer to the tile buffer for JavaScript access
+    pub fn get_tile_buffer_pointer(&self) -> *const u8 {
+        self.tile_buffer.as_ptr()
+    }
+
+    // Get the size of the tile buffer
+    pub fn get_tile_buffer_size(&self) -> usize {
+        self.tile_buffer.len()
     }
 }
 

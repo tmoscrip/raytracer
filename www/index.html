@@ -40,6 +40,11 @@
         border: 1px solid #555;
         border-radius: 3px;
       }
+      .control-group input:disabled {
+        background-color: #222;
+        color: #888;
+        border-color: #444;
+      }
       .control-group button {
         background-color: #555;
         color: white;
@@ -63,28 +68,45 @@
         font-size: 12px;
         margin-bottom: 2px;
       }
+      .performance-info {
+        background-color: #333;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+      .tile-debug {
+        display: none;
+        background-color: #333;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+        font-size: 11px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
     </style>
   </head>
   <body>
-    <canvas id="canvas" width="200" height="200"></canvas>
+    <canvas id="canvas" width="400" height="400"></canvas>
 
     <div class="controls">
-      <h3>Raytracer Controls</h3>
+      <h3>Multi-threaded Raytracer</h3>
 
       <div class="control-group">
         <label>Light Position</label>
         <div class="coordinate-inputs">
           <div>
             <label>X</label>
-            <input type="number" id="lightX" value="15" step="0.1" />
+            <input type="number" id="lightX" value="15" step="1" disabled />
           </div>
           <div>
             <label>Y</label>
-            <input type="number" id="lightY" value="5" step="0.1" />
+            <input type="number" id="lightY" value="5" step="1" disabled />
           </div>
           <div>
             <label>Z</label>
-            <input type="number" id="lightZ" value="-10" step="0.1" />
+            <input type="number" id="lightZ" value="-10" step="1" disabled />
           </div>
         </div>
       </div>
@@ -106,75 +128,473 @@
           </div>
         </div>
       </div>
+
+      <div class="control-group">
+        <label>Worker Count: <span id="workerCountDisplay">4</span></label>
+        <input type="range" id="workerCount" min="1" max="8" value="4" />
+      </div>
+
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="animateLight" checked />
+          Animate Light Position
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label>
+          <input type="checkbox" id="debugTiles" />
+          Show Tile Debug Info
+        </label>
+      </div>
+
+      <div class="performance-info">
+        <div>FPS: <span id="fps">0</span></div>
+        <div>Render Time: <span id="renderTime">0</span>ms</div>
+        <div>Active Workers: <span id="activeWorkers">0</span></div>
+        <div>Tiles Completed: <span id="tilesCompleted">0</span></div>
+      </div>
+
+      <div class="tile-debug" id="tileDebug">
+        <h4>Tile Debug Info</h4>
+        <div id="tileDebugContent"></div>
+      </div>
     </div>
 
-    <script src="./pkg/raytracer.js"></script>
     <script>
-      async function main() {
-        const exports = await wasm_bindgen();
-        const { RenderContext } = wasm_bindgen;
-        const { memory } = exports;
+      class MultiThreadedRaytracer {
+        constructor(canvas) {
+          this.canvas = canvas;
+          this.ctx = canvas.getContext("2d");
+          this.width = canvas.width;
+          this.height = canvas.height;
 
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        const scene = new RenderContext(canvas.width, canvas.height);
-        const buffer_size = canvas.width * canvas.height * 4;
-        let lastTime = 0;
-        let lastRenderTime = 0;
-        const targetFPS = 60;
-        const frameInterval = 1000 / targetFPS; // ~16.67ms for 60 FPS
+          this.workers = [];
 
-        // Get input elements
-        const lightXInput = document.getElementById("lightX");
-        const lightYInput = document.getElementById("lightY");
-        const lightZInput = document.getElementById("lightZ");
-        const sphereXInput = document.getElementById("sphereX");
-        const sphereYInput = document.getElementById("sphereY");
-        const sphereZInput = document.getElementById("sphereZ");
+          // Calculate optimal worker count based on hardware
+          const maxWorkers = Math.max(
+            1,
+            (navigator.hardwareConcurrency || 4) - 1
+          );
+          this.defaultWorkerCount = Math.max(1, Math.floor(maxWorkers / 2));
+          this.workerCount = this.defaultWorkerCount;
+          this.tileSize = 50; // Size of each tile
+          this.tiles = [];
+          this.completedTiles = new Set();
 
-        function renderLoop(currentTime) {
-          const deltaTime = (currentTime - lastTime) / 1000.0;
-          const timeSinceLastRender = currentTime - lastRenderTime;
+          this.frameCount = 0;
+          this.lastFpsTime = performance.now();
+          this.lastRenderStart = 0;
+          this.renderTime = 0;
 
-          // Only render if enough time has passed (frame limiting)
-          if (timeSinceLastRender >= frameInterval) {
-            lastTime = currentTime;
-            lastRenderTime = currentTime;
+          this.isRendering = false;
+          this.pendingRender = false;
+          this.renderLoopStarted = false;
 
-            // Get current input values
-            const lightX = parseFloat(lightXInput.value);
-            const lightY = parseFloat(lightYInput.value);
-            const lightZ = parseFloat(lightZInput.value);
-            const sphereX = parseFloat(sphereXInput.value);
-            const sphereY = parseFloat(sphereYInput.value);
-            const sphereZ = parseFloat(sphereZInput.value);
+          // Light animation properties
+          this.animationStartTime = performance.now();
+          this.lightAnimationEnabled = true;
+          this.baseLightX = 15;
+          this.baseLightY = 5;
+          this.baseLightZ = -10;
 
-            // Update scene parameters and render
-            scene.update_light_position(lightX, lightY, lightZ);
-            scene.update_sphere_position(sphereX, sphereY, sphereZ);
-            scene.render(deltaTime);
+          // Get input elements
+          this.lightXInput = document.getElementById("lightX");
+          this.lightYInput = document.getElementById("lightY");
+          this.lightZInput = document.getElementById("lightZ");
+          this.sphereXInput = document.getElementById("sphereX");
+          this.sphereYInput = document.getElementById("sphereY");
+          this.sphereZInput = document.getElementById("sphereZ");
+          this.workerCountInput = document.getElementById("workerCount");
+          this.animateLightInput = document.getElementById("animateLight");
+          this.debugTilesInput = document.getElementById("debugTiles");
 
-            const pointer = scene.get_image_buffer_pointer();
-            const imageDataArray = new Uint8ClampedArray(
-              memory.buffer,
-              pointer,
-              buffer_size
-            );
+          // Performance display elements
+          this.fpsDisplay = document.getElementById("fps");
+          this.renderTimeDisplay = document.getElementById("renderTime");
+          this.activeWorkersDisplay = document.getElementById("activeWorkers");
+          this.tilesCompletedDisplay =
+            document.getElementById("tilesCompleted");
+          this.workerCountDisplay =
+            document.getElementById("workerCountDisplay");
+          this.tileDebugDiv = document.getElementById("tileDebug");
+          this.tileDebugContent = document.getElementById("tileDebugContent");
 
-            const imageData = new ImageData(
-              imageDataArray,
-              canvas.width,
-              canvas.height
-            );
-            ctx.putImageData(imageData, 0, 0);
-          }
-
-          requestAnimationFrame(renderLoop);
+          this.setupSlider();
+          this.setupEventListeners();
+          this.calculateTiles();
+          this.initWorkers();
         }
 
-        requestAnimationFrame(renderLoop);
+        setupSlider() {
+          // Calculate optimal worker count based on hardware
+          const maxWorkers = Math.max(
+            1,
+            (navigator.hardwareConcurrency || 4) - 1
+          );
+
+          // Update slider attributes
+          this.workerCountInput.max = maxWorkers;
+          this.workerCountInput.value = this.defaultWorkerCount;
+
+          // Update display
+          this.workerCountDisplay.textContent = this.defaultWorkerCount;
+
+          console.log(
+            `Hardware concurrency: ${
+              navigator.hardwareConcurrency || "unknown"
+            }`
+          );
+          console.log(
+            `Max workers: ${maxWorkers}, Default: ${this.defaultWorkerCount}`
+          );
+        }
+
+        setupEventListeners() {
+          // Update worker count
+          this.workerCountInput.addEventListener("input", (e) => {
+            this.workerCount = parseInt(e.target.value);
+            this.workerCountDisplay.textContent = this.workerCount;
+            this.reinitWorkers();
+          });
+
+          // Toggle light animation
+          this.animateLightInput.addEventListener("change", (e) => {
+            this.lightAnimationEnabled = e.target.checked;
+            if (this.lightAnimationEnabled) {
+              this.animationStartTime = performance.now();
+              // Store current manual values as base values
+              this.baseLightX = parseFloat(this.lightXInput.value);
+              this.baseLightY = parseFloat(this.lightYInput.value);
+              this.baseLightZ = parseFloat(this.lightZInput.value);
+              // Disable manual inputs
+              this.lightXInput.disabled = true;
+              this.lightYInput.disabled = true;
+              this.lightZInput.disabled = true;
+            } else {
+              // Re-enable manual inputs
+              this.lightXInput.disabled = false;
+              this.lightYInput.disabled = false;
+              this.lightZInput.disabled = false;
+            }
+          });
+
+          // Toggle debug info
+          this.debugTilesInput.addEventListener("change", (e) => {
+            this.tileDebugDiv.style.display = e.target.checked
+              ? "block"
+              : "none";
+          });
+
+          // Trigger re-render on parameter changes
+          [
+            this.lightXInput,
+            this.lightYInput,
+            this.lightZInput,
+            this.sphereXInput,
+            this.sphereYInput,
+            this.sphereZInput,
+          ].forEach((input) => {
+            input.addEventListener("input", () => this.scheduleRender());
+          });
+        }
+
+        calculateTiles() {
+          this.tiles = [];
+          let tileId = 0;
+
+          for (let y = 0; y < this.height; y += this.tileSize) {
+            for (let x = 0; x < this.width; x += this.tileSize) {
+              const tileWidth = Math.min(this.tileSize, this.width - x);
+              const tileHeight = Math.min(this.tileSize, this.height - y);
+
+              this.tiles.push({
+                id: tileId++,
+                x,
+                y,
+                width: tileWidth,
+                height: tileHeight,
+              });
+            }
+          }
+
+          console.log(
+            `Created ${this.tiles.length} tiles of size ${this.tileSize}x${this.tileSize}`
+          );
+        }
+
+        async initWorkers() {
+          // Terminate existing workers
+          this.workers.forEach((workerInfo) => workerInfo.worker.terminate());
+          this.workers = [];
+
+          // Create new workers
+          for (let i = 0; i < this.workerCount; i++) {
+            const worker = new Worker("./raytracer-worker.js");
+
+            worker.onmessage = (e) => this.handleWorkerMessage(i, e);
+            worker.onerror = (error) => {
+              console.error(`Worker ${i} error:`, error);
+            };
+
+            this.workers.push({
+              worker,
+              id: i,
+              ready: false,
+              busy: false,
+            });
+
+            // Initialize the worker
+            worker.postMessage({ type: "init" });
+          }
+        }
+
+        async reinitWorkers() {
+          // Reset render state when reinitializing workers
+          this.isRendering = false;
+          this.pendingRender = false;
+          await this.initWorkers();
+          // Don't call scheduleRender here - let checkAllWorkersReady handle it
+        }
+
+        handleWorkerMessage(workerId, e) {
+          const { type, data, error } = e.data;
+          const workerInfo = this.workers[workerId];
+
+          switch (type) {
+            case "worker-started":
+              console.log(`Worker ${workerId} started`);
+              break;
+
+            case "ready":
+              console.log(`Worker ${workerId} ready`);
+              workerInfo.ready = true;
+              this.checkAllWorkersReady();
+              break;
+
+            case "tile-complete":
+              this.handleTileComplete(workerId, data);
+              break;
+
+            case "error":
+              console.error(`Worker ${workerId} error:`, error);
+              workerInfo.busy = false;
+              break;
+          }
+        }
+
+        checkAllWorkersReady() {
+          const allReady = this.workers.every((w) => w.ready);
+          if (allReady && !this.renderLoopStarted) {
+            console.log("All workers ready, starting render loop");
+            this.startRenderLoop();
+          } else if (allReady) {
+            console.log("All workers ready, render loop already running");
+            this.scheduleRender(); // Just trigger a new render
+          }
+        }
+
+        handleTileComplete(workerId, tileData) {
+          const workerInfo = this.workers[workerId];
+          workerInfo.busy = false;
+
+          const {
+            tileId,
+            tileX,
+            tileY,
+            tileWidth,
+            tileHeight,
+            tileData: pixelData,
+          } = tileData;
+
+          // Create ImageData and draw to canvas
+          const imageData = new ImageData(pixelData, tileWidth, tileHeight);
+          this.ctx.putImageData(imageData, tileX, tileY);
+
+          this.completedTiles.add(tileId);
+
+          // Update debug info
+          if (this.debugTilesInput.checked) {
+            this.updateTileDebug(
+              tileId,
+              tileX,
+              tileY,
+              tileWidth,
+              tileHeight,
+              workerId
+            );
+          }
+
+          // Check if all tiles are complete
+          if (this.completedTiles.size === this.tiles.length) {
+            this.renderTime = performance.now() - this.lastRenderStart;
+            this.isRendering = false;
+
+            // Count this as a completed frame for FPS calculation
+            this.frameCount++;
+            this.updateFPS();
+
+            // Start next render if one is pending
+            if (this.pendingRender) {
+              this.pendingRender = false;
+              this.render();
+            }
+          }
+
+          this.updatePerformanceDisplay();
+        }
+
+        updateTileDebug(tileId, x, y, width, height, workerId) {
+          const debugInfo = document.createElement("div");
+          debugInfo.textContent = `Tile ${tileId}: (${x},${y}) ${width}x${height} - Worker ${workerId}`;
+          this.tileDebugContent.appendChild(debugInfo);
+
+          // Keep only last 20 entries
+          while (this.tileDebugContent.children.length > 20) {
+            this.tileDebugContent.removeChild(this.tileDebugContent.firstChild);
+          }
+        }
+
+        updateLightAnimation() {
+          if (!this.lightAnimationEnabled) return;
+
+          const now = performance.now();
+          const elapsed = (now - this.animationStartTime) / 1000; // Convert to seconds
+
+          // Create parabolic motion using the base values as reference scale
+          const scale = Math.abs(this.baseLightX) || 10; // Use base X as scale reference
+
+          // Parabolic path parameters
+          const speed = 1.5; // Animation speed multiplier
+          const t = elapsed * speed;
+
+          // X: Sine wave for left-right movement
+          const lightX = this.baseLightX + scale * 0.8 * Math.sin(t);
+
+          // Y: Parabolic curve (up and down)
+          const lightY =
+            this.baseLightY +
+            scale * 0.6 * Math.sin(t * 0.7) * Math.cos(t * 0.3);
+
+          // Z: Gentle forward-backward movement
+          const lightZ = this.baseLightZ + scale * 0.4 * Math.cos(t * 0.6);
+
+          // Update the input values (for display)
+          this.lightXInput.value = lightX.toFixed(1);
+          this.lightYInput.value = lightY.toFixed(1);
+          this.lightZInput.value = lightZ.toFixed(1);
+        }
+
+        scheduleRender() {
+          if (this.isRendering) {
+            this.pendingRender = true;
+          } else {
+            this.render();
+          }
+        }
+
+        render() {
+          if (this.isRendering) return;
+
+          this.isRendering = true;
+          this.lastRenderStart = performance.now();
+          this.completedTiles.clear();
+
+          // Clear debug info
+          if (this.debugTilesInput.checked) {
+            this.tileDebugContent.innerHTML = "";
+          }
+
+          // Get current scene parameters
+          const sceneParams = {
+            lightX: parseFloat(this.lightXInput.value),
+            lightY: parseFloat(this.lightYInput.value),
+            lightZ: parseFloat(this.lightZInput.value),
+            sphereX: parseFloat(this.sphereXInput.value),
+            sphereY: parseFloat(this.sphereYInput.value),
+            sphereZ: parseFloat(this.sphereZInput.value),
+          };
+
+          // Distribute tiles among available workers
+          let tileIndex = 0;
+          const distributeTiles = () => {
+            for (
+              let i = 0;
+              i < this.workers.length && tileIndex < this.tiles.length;
+              i++
+            ) {
+              const workerInfo = this.workers[i];
+              if (workerInfo.ready && !workerInfo.busy) {
+                const tile = this.tiles[tileIndex++];
+                workerInfo.busy = true;
+
+                workerInfo.worker.postMessage({
+                  type: "render-tile",
+                  data: {
+                    tileId: tile.id,
+                    tileX: tile.x,
+                    tileY: tile.y,
+                    tileWidth: tile.width,
+                    tileHeight: tile.height,
+                    fullWidth: this.width,
+                    fullHeight: this.height,
+                    ...sceneParams,
+                  },
+                });
+              }
+            }
+
+            // Continue distributing tiles as workers become available
+            if (tileIndex < this.tiles.length) {
+              setTimeout(distributeTiles, 1);
+            }
+          };
+
+          distributeTiles();
+        }
+
+        updateFPS() {
+          const now = performance.now();
+          const timeDiff = now - this.lastFpsTime;
+
+          if (timeDiff >= 1000) {
+            const fps = (this.frameCount * 1000) / timeDiff;
+            this.fpsDisplay.textContent = fps.toFixed(1);
+            this.frameCount = 0;
+            this.lastFpsTime = now;
+          }
+        }
+
+        updatePerformanceDisplay() {
+          this.renderTimeDisplay.textContent = this.renderTime.toFixed(1);
+          this.activeWorkersDisplay.textContent = this.workers.filter(
+            (w) => w.busy
+          ).length;
+          this.tilesCompletedDisplay.textContent = this.completedTiles.size;
+        }
+
+        startRenderLoop() {
+          if (this.renderLoopStarted) {
+            console.log("Render loop already started, skipping");
+            return;
+          }
+
+          this.renderLoopStarted = true;
+          console.log("Starting render loop");
+
+          const loop = () => {
+            this.updateLightAnimation();
+            this.scheduleRender();
+            this.updatePerformanceDisplay();
+            setTimeout(loop, 16); // ~60 FPS
+          };
+          loop();
+        }
       }
-      main();
+
+      // Initialize the multi-threaded raytracer
+      const canvas = document.getElementById("canvas");
+      const raytracer = new MultiThreadedRaytracer(canvas);
     </script>
   </body>
 </html>
