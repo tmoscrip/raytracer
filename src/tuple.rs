@@ -56,6 +56,10 @@ impl Tuple {
     }
 }
 
+pub fn reflect(dir: &Tuple, normal: &Tuple) -> Tuple {
+    dir.clone() - normal.clone() * 2.0 * dir.dot(normal)
+}
+
 impl Add for Tuple {
     type Output = Tuple;
     fn add(self, other: Tuple) -> Tuple {
@@ -290,5 +294,22 @@ mod tests {
         let vector2 = Tuple::vector(2.0, 3.0, 4.0);
         assert_abs_diff_eq!(vector1.cross(&vector2), Tuple::vector(-1.0, 2.0, -1.0));
         assert_abs_diff_eq!(vector2.cross(&vector1), Tuple::vector(1.0, -2.0, 1.0));
+    }
+
+    #[test]
+    fn reflecting_vector_approaching_at_45_degrees() {
+        let v = Tuple::vector(1.0, -1.0, 0.0);
+        let n = Tuple::vector(0.0, 1.0, 0.0);
+        let r = reflect(&v, &n);
+        assert_eq!(r, Tuple::vector(1.0, 1.0, 0.0));
+    }
+
+    #[test]
+    fn reflecting_vector_off_slanted_surface() {
+        let v = Tuple::vector(0.0, -1.0, 0.0);
+        let sqrt_2_div_2 = (2.0_f64).sqrt() / 2.0;
+        let n = Tuple::vector(sqrt_2_div_2, sqrt_2_div_2, 0.0);
+        let r = reflect(&v, &n);
+        assert_abs_diff_eq!(r, Tuple::vector(1.0, 0.0, 0.0), epsilon = 0.0001);
     }
 }

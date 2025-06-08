@@ -1,23 +1,32 @@
 use crate::{
     colour::Colour,
+    intersection,
+    light::{self, Light},
+    materials::{self, lighting},
     matrix::Matrix,
-    ray::{self, Ray},
-    sphere::{intersect, Sphere},
+    ray::Ray,
+    sphere::{self, intersect, Sphere},
     tuple::Tuple,
 };
 use wasm_bindgen::prelude::*;
 
 pub struct TraceSphereScene {
     sphere: Sphere,
+    light: Light,
 }
 
 impl TraceSphereScene {
     pub fn new() -> Self {
         let mut s = Sphere::new();
-        s.set_transform(
-            Matrix::translation(0.0, 0.0, 0.0) * Matrix::shearing(1.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-        );
-        Self { sphere: s }
+        s.set_transform(Matrix::translation(0.0, 0.0, 0.0));
+        s.material.colour = Colour::new(1.0, 0.2, 1.0);
+
+        let light_pos = Tuple::point(10.0, 10.0, -10.0);
+        let light_colour = Colour::white();
+        Self {
+            sphere: s,
+            light: Light::point_light(light_pos, light_colour),
+        }
     }
 }
 
@@ -78,8 +87,22 @@ impl RenderContext {
                 let r = Ray::new(ray_origin, (position - ray_origin).normalise());
                 let xs = intersect(&self.scene.sphere, &r);
 
-                if !xs.is_empty() {
-                    self.colours[pixel_index] = Colour::new(1.0, 0.0, 0.0); // Red for hit
+                let hit = intersection::hit(&xs);
+
+                if let Some(hit_intersection) = hit {
+                    let point = r.position(hit_intersection.t);
+                    let normalv = sphere::normal_at(&self.scene.sphere, &point);
+                    let eyev = -r.direction;
+
+                    let colour = materials::lighting(
+                        self.scene.sphere.material.clone(),
+                        self.scene.light.clone(),
+                        point,
+                        eyev,
+                        normalv,
+                    );
+
+                    self.colours[pixel_index] = colour;
                 }
             }
         }

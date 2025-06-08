@@ -15,6 +15,14 @@ impl Colour {
     pub fn new(r: f64, g: f64, b: f64) -> Colour {
         Colour { r, g, b }
     }
+
+    pub fn black() -> Colour {
+        Colour::new(0.0, 0.0, 0.0)
+    }
+
+    pub fn white() -> Colour {
+        Colour::new(1.0, 1.0, 1.0)
+    }
 }
 
 // Colour-specific operations

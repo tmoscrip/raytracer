@@ -1,6 +1,8 @@
 pub mod colour;
 pub mod environment;
 pub mod intersection;
+pub mod light;
+pub mod materials;
 pub mod matrix;
 pub mod projectile;
 pub mod ray;

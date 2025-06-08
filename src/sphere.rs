@@ -1,3 +1,4 @@
+use crate::materials::Material;
 use crate::matrix::Matrix;
 use crate::tuple::Tuple;
 use crate::{intersection::Intersection, ray::Ray};
@@ -8,6 +9,7 @@ static SPHERE_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
 pub struct Sphere {
     pub id: u32,
     pub transform: Matrix,
+    pub material: Material,
 }
 
 impl Sphere {
@@ -15,11 +17,16 @@ impl Sphere {
         Sphere {
             id: SPHERE_ID_COUNTER.fetch_add(1, Ordering::Relaxed),
             transform: Matrix::identity(),
+            material: Material::new(),
         }
     }
 
     pub fn set_transform(&mut self, transform: Matrix) {
         self.transform = transform;
+    }
+
+    pub fn set_material(&mut self, material: Material) {
+        self.material = material;
     }
 }
 
@@ -44,8 +51,26 @@ pub fn intersect(sphere: &Sphere, ray: &Ray) -> Vec<Intersection> {
     }
 }
 
+pub fn normal_at(sphere: &Sphere, world_point: &Tuple) -> Tuple {
+    // Transform world point to object space
+    let object_point = sphere.transform.inverse() * world_point.clone();
+
+    // Calculate normal in object space (for unit sphere at origin)
+    let object_normal = object_point - Tuple::point(0.0, 0.0, 0.0);
+
+    // Transform normal back to world space
+    // Use transpose of inverse for normal transformation
+    let world_normal = sphere.transform.inverse().transpose() * object_normal;
+
+    // Set w to 0 (ensure it's a vector) and normalize
+    let result = Tuple::vector(world_normal.x, world_normal.y, world_normal.z);
+    result.normalise()
+}
+
 #[cfg(test)]
 mod tests {
+    use approx::assert_abs_diff_eq;
+
     use super::*;
     use crate::ray::Ray;
     use crate::tuple::Tuple;
@@ -123,5 +148,90 @@ mod tests {
         let xs = intersect(&s, &r);
 
         assert_eq!(xs.len(), 0);
+    }
+
+    #[test]
+    fn normal_on_sphere_at_point_on_x_axis() {
+        let s = Sphere::new();
+        let n = normal_at(&s, &Tuple::point(1.0, 0.0, 0.0));
+
+        assert_eq!(n, Tuple::vector(1.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn normal_on_sphere_at_point_on_y_axis() {
+        let s = Sphere::new();
+        let n = normal_at(&s, &Tuple::point(0.0, 1.0, 0.0));
+
+        assert_eq!(n, Tuple::vector(0.0, 1.0, 0.0));
+    }
+
+    #[test]
+    fn normal_on_sphere_at_point_on_z_axis() {
+        let s = Sphere::new();
+        let n = normal_at(&s, &Tuple::point(0.0, 0.0, 1.0));
+
+        assert_eq!(n, Tuple::vector(0.0, 0.0, 1.0));
+    }
+
+    #[test]
+    fn normal_on_sphere_at_nonaxial_point() {
+        let s = Sphere::new();
+        let sqrt_3_div_3 = (3.0_f64).sqrt() / 3.0;
+        let n = normal_at(&s, &Tuple::point(sqrt_3_div_3, sqrt_3_div_3, sqrt_3_div_3));
+
+        assert_eq!(n, Tuple::vector(sqrt_3_div_3, sqrt_3_div_3, sqrt_3_div_3));
+    }
+
+    #[test]
+    fn normal_is_normalized_vector() {
+        let s = Sphere::new();
+        let sqrt_3_div_3 = (3.0_f64).sqrt() / 3.0;
+        let n = normal_at(&s, &Tuple::point(sqrt_3_div_3, sqrt_3_div_3, sqrt_3_div_3));
+
+        assert_eq!(n, n.normalise());
+    }
+
+    #[test]
+    fn normal_on_translated_sphere() {
+        let mut s = Sphere::new();
+        s.set_transform(Matrix::translation(0.0, 1.0, 0.0));
+        let n = normal_at(&s, &Tuple::point(0.0, 1.70711, -0.70711));
+
+        assert_abs_diff_eq!(n, Tuple::vector(0.0, 0.70711, -0.70711), epsilon = 0.0001);
+    }
+
+    #[test]
+    fn normal_on_transformed_sphere() {
+        let mut s = Sphere::new();
+        let m = Matrix::scaling(1.0, 0.5, 1.0) * Matrix::rotation_z(std::f64::consts::PI / 5.0);
+        s.set_transform(m);
+        let sqrt_2_div_2 = (2.0_f64).sqrt() / 2.0;
+        let n = normal_at(&s, &Tuple::point(0.0, sqrt_2_div_2, -sqrt_2_div_2));
+
+        assert_abs_diff_eq!(n, Tuple::vector(0.0, 0.97014, -0.24254), epsilon = 0.0001);
+    }
+
+    #[test]
+    fn sphere_has_default_material() {
+        let s = Sphere::new();
+        let m = s.material;
+        let default = Material::new();
+
+        assert_eq!(m.colour, default.colour);
+        assert_eq!(m.ambient, default.ambient);
+        assert_eq!(m.diffuse, default.diffuse);
+        assert_eq!(m.specular, default.specular);
+        assert_eq!(m.shininess, default.shininess);
+    }
+
+    #[test]
+    fn sphere_may_be_assigned_material() {
+        let mut s = Sphere::new();
+        let mut m = crate::materials::Material::new();
+        m.ambient = 1.0;
+        s.set_material(m);
+
+        assert_eq!(s.material.ambient, 1.0);
     }
 }
