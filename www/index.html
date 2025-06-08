@@ -1,165 +1,218 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+    <title>Raytracer</title>
     <style>
-      body {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        gap: 20px;
-        height: 100vh;
-        margin: 0;
-        background-color: #111;
-        font-family: Arial, sans-serif;
-        padding: 20px;
+      /* Compact sizing overrides */
+      :root {
+        --pico-font-size: 0.875rem;
+        --pico-spacing: 0.75rem;
+        --pico-form-element-spacing-vertical: 0.5rem;
+        --pico-form-element-spacing-horizontal: 0.75rem;
       }
-      canvas {
-        border: 1px solid #333;
+
+      .container {
+        padding: 1rem;
       }
-      .controls {
-        background-color: #222;
-        padding: 20px;
-        border-radius: 8px;
-        color: #fff;
-        min-width: 300px;
+
+      h2 {
+        font-size: 1.25rem;
+        margin-bottom: 0.25rem;
       }
-      .control-group {
-        margin-bottom: 20px;
+      h4 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
       }
-      .control-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
+      p {
+        margin-bottom: 0.5rem;
+        font-size: 0.8rem;
       }
-      .control-group input {
-        width: 100%;
-        padding: 5px;
-        margin-bottom: 5px;
-        background-color: #333;
-        color: #fff;
-        border: 1px solid #555;
-        border-radius: 3px;
+
+      /* Custom styles that complement Pico CSS */
+      .grid {
+        align-items: center;
       }
-      .control-group input:disabled {
-        background-color: #222;
-        color: #888;
-        border-color: #444;
-      }
-      .control-group button {
-        background-color: #555;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      .control-group button:hover {
-        background-color: #666;
-      }
-      .coordinate-inputs {
-        display: flex;
-        gap: 10px;
-      }
-      .coordinate-inputs input {
-        flex: 1;
-      }
-      .coordinate-inputs label {
+
+      .canvas-container {
         text-align: center;
-        font-size: 12px;
-        margin-bottom: 2px;
+        margin-bottom: var(--pico-spacing);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100%;
       }
+
+      canvas {
+        border: 1px solid var(--pico-muted-border-color);
+        border-radius: var(--pico-border-radius);
+        box-shadow: var(--pico-box-shadow);
+      }
+
+      .coordinate-inputs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--pico-grid-column-gap);
+      }
+
+      .coordinate-inputs > div {
+        text-align: center;
+      }
+
+      .coordinate-inputs label {
+        font-size: 0.875rem;
+        font-weight: var(--pico-font-weight);
+        margin-bottom: calc(var(--pico-spacing) * 0.25);
+        display: block;
+      }
+
       .performance-info {
-        background-color: #333;
-        padding: 10px;
-        border-radius: 4px;
-        margin-top: 10px;
-        font-size: 12px;
+        background-color: var(--pico-card-background-color);
+        border: 1px solid var(--pico-muted-border-color);
+        border-radius: var(--pico-border-radius);
+        padding: var(--pico-spacing);
+        margin-top: var(--pico-spacing);
       }
+
+      .performance-info div {
+        margin-bottom: calc(var(--pico-spacing) * 0.25);
+      }
+
+      .performance-info div:last-child {
+        margin-bottom: 0;
+      }
+
       .tile-debug {
         display: none;
-        background-color: #333;
-        padding: 10px;
-        border-radius: 4px;
-        margin-top: 10px;
-        font-size: 11px;
+        background-color: var(--pico-card-background-color);
+        border: 1px solid var(--pico-muted-border-color);
+        border-radius: var(--pico-border-radius);
+        padding: var(--pico-spacing);
+        margin-top: var(--pico-spacing);
         max-height: 200px;
         overflow-y: auto;
+        font-size: 0.875rem;
+      }
+
+      .tile-debug h4 {
+        margin-top: 0;
+        margin-bottom: var(--pico-spacing);
+      }
+
+      .range-display {
+        display: inline-block;
+        margin-left: calc(var(--pico-spacing) * 0.5);
+        font-weight: var(--pico-font-weight);
+      }
+
+      /* Responsive layout */
+      @media (max-width: 768px) {
+        .container {
+          flex-direction: column;
+        }
+
+        .controls {
+          margin-top: var(--pico-spacing);
+        }
       }
     </style>
   </head>
   <body>
-    <canvas id="canvas" width="400" height="400"></canvas>
-
-    <div class="controls">
-      <h3>Multi-threaded Raytracer</h3>
-
-      <div class="control-group">
-        <label>Light Position</label>
-        <div class="coordinate-inputs">
-          <div>
-            <label>X</label>
-            <input type="number" id="lightX" value="15" step="1" disabled />
-          </div>
-          <div>
-            <label>Y</label>
-            <input type="number" id="lightY" value="5" step="1" disabled />
-          </div>
-          <div>
-            <label>Z</label>
-            <input type="number" id="lightZ" value="-10" step="1" disabled />
-          </div>
+    <main class="container">
+      <div class="grid">
+        <div class="canvas-container">
+          <canvas id="canvas" width="400" height="400"></canvas>
         </div>
-      </div>
 
-      <div class="control-group">
-        <label>Sphere Position</label>
-        <div class="coordinate-inputs">
-          <div>
-            <label>X</label>
-            <input type="number" id="sphereX" value="0" step="0.1" />
+        <aside class="controls">
+          <hgroup>
+            <h2>Raytracer</h2>
+            <p>Real-time ray tracing with Rust Web Workers</p>
+          </hgroup>
+
+          <article>
+            <header><h4>Light Position</h4></header>
+            <div class="coordinate-inputs">
+              <div>
+                <label for="lightX">X</label>
+                <input type="number" id="lightX" value="15" step="1" disabled />
+              </div>
+              <div>
+                <label for="lightY">Y</label>
+                <input type="number" id="lightY" value="5" step="1" disabled />
+              </div>
+              <div>
+                <label for="lightZ">Z</label>
+                <input
+                  type="number"
+                  id="lightZ"
+                  value="-10"
+                  step="1"
+                  disabled
+                />
+              </div>
+            </div>
+          </article>
+
+          <article>
+            <header><h4>Sphere Position</h4></header>
+            <div class="coordinate-inputs">
+              <div>
+                <label for="sphereX">X</label>
+                <input type="number" id="sphereX" value="0" step="0.1" />
+              </div>
+              <div>
+                <label for="sphereY">Y</label>
+                <input type="number" id="sphereY" value="0" step="0.1" />
+              </div>
+              <div>
+                <label for="sphereZ">Z</label>
+                <input type="number" id="sphereZ" value="0" step="0.1" />
+              </div>
+            </div>
+          </article>
+
+          <article>
+            <label for="workerCount">
+              Worker Count:
+              <span id="workerCountDisplay" class="range-display">4</span>
+            </label>
+            <input type="range" id="workerCount" min="1" max="8" value="4" />
+          </article>
+
+          <fieldset>
+            <label>
+              <input type="checkbox" id="animateLight" checked />
+              Animate Light Position
+            </label>
+
+            <label>
+              <input type="checkbox" id="debugTiles" />
+              Show Tile Debug Info
+            </label>
+          </fieldset>
+
+          <div class="performance-info">
+            <strong>Performance Metrics</strong>
+            <div>FPS: <span id="fps">0</span></div>
+            <div>Render Time: <span id="renderTime">0</span>ms</div>
+            <div>Active Workers: <span id="activeWorkers">0</span></div>
+            <div>Tiles Completed: <span id="tilesCompleted">0</span></div>
           </div>
-          <div>
-            <label>Y</label>
-            <input type="number" id="sphereY" value="0" step="0.1" />
+
+          <div class="tile-debug" id="tileDebug">
+            <h4>Tile Debug Info</h4>
+            <div id="tileDebugContent"></div>
           </div>
-          <div>
-            <label>Z</label>
-            <input type="number" id="sphereZ" value="0" step="0.1" />
-          </div>
-        </div>
+        </aside>
       </div>
-
-      <div class="control-group">
-        <label>Worker Count: <span id="workerCountDisplay">4</span></label>
-        <input type="range" id="workerCount" min="1" max="8" value="4" />
-      </div>
-
-      <div class="control-group">
-        <label>
-          <input type="checkbox" id="animateLight" checked />
-          Animate Light Position
-        </label>
-      </div>
-
-      <div class="control-group">
-        <label>
-          <input type="checkbox" id="debugTiles" />
-          Show Tile Debug Info
-        </label>
-      </div>
-
-      <div class="performance-info">
-        <div>FPS: <span id="fps">0</span></div>
-        <div>Render Time: <span id="renderTime">0</span>ms</div>
-        <div>Active Workers: <span id="activeWorkers">0</span></div>
-        <div>Tiles Completed: <span id="tilesCompleted">0</span></div>
-      </div>
-
-      <div class="tile-debug" id="tileDebug">
-        <h4>Tile Debug Info</h4>
-        <div id="tileDebugContent"></div>
-      </div>
-    </div>
+    </main>
 
     <script>
       class MultiThreadedRaytracer {
