@@ -4,7 +4,7 @@ pub mod intersection;
 pub mod matrix;
 pub mod projectile;
 pub mod ray;
-pub mod scene;
+pub mod render_context;
 pub mod simulation;
 pub mod sphere;
 pub mod tuple;

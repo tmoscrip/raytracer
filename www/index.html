@@ -51,191 +51,19 @@
   </head>
   <body>
     <canvas id="canvas" width="512" height="512"></canvas>
-    <div class="controls">
-      <h2>Simulation Controls</h2>
-
-      <div class="control-group">
-        <label>Projectile Starting Position</label>
-        <label for="start-x">X Position:</label>
-        <input
-          type="number"
-          id="start-x"
-          value="100"
-          step="0.1"
-          placeholder="X position"
-        />
-        <label for="start-y">Y Position:</label>
-        <input
-          type="number"
-          id="start-y"
-          value="50"
-          step="0.1"
-          placeholder="Y position"
-        />
-      </div>
-
-      <div class="control-group">
-        <label>Initial Velocity</label>
-        <label for="vel-x">X Velocity:</label>
-        <input
-          type="number"
-          id="vel-x"
-          value="10.24"
-          step="0.1"
-          placeholder="X velocity"
-        />
-        <label for="vel-y">Y Velocity:</label>
-        <input
-          type="number"
-          id="vel-y"
-          value="12.8"
-          step="0.1"
-          placeholder="Y velocity"
-        />
-      </div>
-
-      <div class="control-group">
-        <label>Gravity</label>
-        <label for="gravity-x">X Gravity:</label>
-        <input
-          type="number"
-          id="gravity-x"
-          value="0"
-          step="0.01"
-          placeholder="X gravity"
-        />
-        <label for="gravity-y">Y Gravity:</label>
-        <input
-          type="number"
-          id="gravity-y"
-          value="-0.25"
-          step="0.01"
-          placeholder="Y gravity"
-        />
-      </div>
-
-      <div class="control-group">
-        <label>Wind</label>
-        <label for="wind-x">X Wind:</label>
-        <input
-          type="number"
-          id="wind-x"
-          value="-0.15"
-          step="0.01"
-          placeholder="X wind"
-        />
-        <label for="wind-y">Y Wind:</label>
-        <input
-          type="number"
-          id="wind-y"
-          value="0"
-          step="0.01"
-          placeholder="Y wind"
-        />
-      </div>
-
-      <div class="control-group">
-        <button id="reset-btn">Reset Simulation</button>
-        <button id="apply-btn">Apply Changes</button>
-      </div>
-    </div>
 
     <script src="./pkg/raytracer.js"></script>
     <script>
       async function main() {
         const exports = await wasm_bindgen();
-        const { Scene } = wasm_bindgen;
+        const { RenderContext } = wasm_bindgen;
         const { memory } = exports;
 
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
-        const scene = new Scene(canvas.width, canvas.height);
+        const scene = new RenderContext(canvas.width, canvas.height);
         const buffer_size = canvas.width * canvas.height * 4;
         let lastTime = 0;
-
-        // Control elements
-        const startXInput = document.getElementById("start-x");
-        const startYInput = document.getElementById("start-y");
-        const velXInput = document.getElementById("vel-x");
-        const velYInput = document.getElementById("vel-y");
-        const gravityXInput = document.getElementById("gravity-x");
-        const gravityYInput = document.getElementById("gravity-y");
-        const windXInput = document.getElementById("wind-x");
-        const windYInput = document.getElementById("wind-y");
-        const resetBtn = document.getElementById("reset-btn");
-        const applyBtn = document.getElementById("apply-btn");
-
-        // Initialize scene with HTML input values
-        const initialParams = {
-          startX: parseFloat(startXInput.value),
-          startY: parseFloat(startYInput.value),
-          velX: parseFloat(velXInput.value),
-          velY: parseFloat(velYInput.value),
-          gravityX: parseFloat(gravityXInput.value),
-          gravityY: parseFloat(gravityYInput.value),
-          windX: parseFloat(windXInput.value),
-          windY: parseFloat(windYInput.value),
-        };
-
-        scene.update_simulation_parameters(
-          initialParams.startX,
-          initialParams.startY,
-          initialParams.velX,
-          initialParams.velY,
-          initialParams.gravityX,
-          initialParams.gravityY,
-          initialParams.windX,
-          initialParams.windY
-        );
-
-        // Event handlers
-        resetBtn.addEventListener("click", () => {
-          const params = {
-            startX: parseFloat(startXInput.value),
-            startY: parseFloat(startYInput.value),
-            velX: parseFloat(velXInput.value),
-            velY: parseFloat(velYInput.value),
-            gravityX: parseFloat(gravityXInput.value),
-            gravityY: parseFloat(gravityYInput.value),
-            windX: parseFloat(windXInput.value),
-            windY: parseFloat(windYInput.value),
-          };
-
-          scene.reset_with_parameters(
-            params.startX,
-            params.startY,
-            params.velX,
-            params.velY,
-            params.gravityX,
-            params.gravityY,
-            params.windX,
-            params.windY
-          );
-        });
-
-        applyBtn.addEventListener("click", () => {
-          const params = {
-            startX: parseFloat(startXInput.value),
-            startY: parseFloat(startYInput.value),
-            velX: parseFloat(velXInput.value),
-            velY: parseFloat(velYInput.value),
-            gravityX: parseFloat(gravityXInput.value),
-            gravityY: parseFloat(gravityYInput.value),
-            windX: parseFloat(windXInput.value),
-            windY: parseFloat(windYInput.value),
-          };
-
-          scene.update_simulation_parameters(
-            params.startX,
-            params.startY,
-            params.velX,
-            params.velY,
-            params.gravityX,
-            params.gravityY,
-            params.windX,
-            params.windY
-          );
-        });
 
         function renderLoop(currentTime) {
           const deltaTime = (currentTime - lastTime) / 1000.0;
