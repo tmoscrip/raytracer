@@ -1,5 +1,25 @@
-use crate::colour::Colour;
+use crate::{
+    colour::Colour,
+    matrix::Matrix,
+    ray::{self, Ray},
+    sphere::{intersect, Sphere},
+    tuple::Tuple,
+};
 use wasm_bindgen::prelude::*;
+
+pub struct TraceSphereScene {
+    sphere: Sphere,
+}
+
+impl TraceSphereScene {
+    pub fn new() -> Self {
+        let mut s = Sphere::new();
+        s.set_transform(
+            Matrix::translation(0.0, 0.0, 0.0) * Matrix::shearing(1.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        );
+        Self { sphere: s }
+    }
+}
 
 #[wasm_bindgen]
 pub struct RenderContext {
@@ -8,6 +28,7 @@ pub struct RenderContext {
     colours: Vec<Colour>,
     buffer: Vec<u8>,
     time: f32,
+    scene: TraceSphereScene,
 }
 
 #[wasm_bindgen]
@@ -19,21 +40,21 @@ impl RenderContext {
         let buffer_size = (width * height * 4) as usize;
         let buffer = vec![0; buffer_size];
 
-        let scene = RenderContext {
+        let context = RenderContext {
             width,
             height,
             colours,
             buffer,
             time: 0.0,
+            scene: TraceSphereScene::new(),
         };
 
-        scene
+        context
     }
 
     pub fn render(&mut self, dt: f32) {
         self.time += dt;
 
-        // Clear background to black for better visibility of projectile
         for y in 0..self.height {
             for x in 0..self.width {
                 let pixel_index = (y * self.width + x) as usize;
@@ -41,7 +62,28 @@ impl RenderContext {
             }
         }
 
-        // Convert colours to buffer for canvas
+        let ray_origin = Tuple::point(0.0, 0.0, -10.0);
+        let wall_z = 10.0;
+        let wall_size = 7.0;
+        let pixel_size = wall_size / self.height as f64;
+        let half = wall_size / 2.0;
+
+        for y in 0..self.height {
+            let world_y = half - pixel_size * y as f64;
+            for x in 0..self.width {
+                let world_x = half - pixel_size * x as f64;
+
+                let pixel_index = (y * self.width + x) as usize;
+                let position = Tuple::point(world_x, world_y, wall_z);
+                let r = Ray::new(ray_origin, (position - ray_origin).normalise());
+                let xs = intersect(&self.scene.sphere, &r);
+
+                if !xs.is_empty() {
+                    self.colours[pixel_index] = Colour::new(1.0, 0.0, 0.0); // Red for hit
+                }
+            }
+        }
+
         self.update_buffer_from_colours();
     }
 
