@@ -10,6 +10,9 @@ use crate::{
 };
 use wasm_bindgen::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
+use crate::{console_log, performance_now};
+
 pub struct TraceSphereScene {
     sphere: Sphere,
     light: Light,
@@ -61,35 +64,72 @@ impl RenderContext {
         context
     }
 
+    pub fn update_light_position(&mut self, x: f64, y: f64, z: f64) {
+        self.scene.light.position = Tuple::point(x, y, z);
+    }
+
+    pub fn update_sphere_position(&mut self, x: f64, y: f64, z: f64) {
+        self.scene
+            .sphere
+            .set_transform(Matrix::translation(x, y, z));
+    }
+
     pub fn render(&mut self, dt: f32) {
+        #[cfg(target_arch = "wasm32")]
+        let start_time = performance_now();
+
         self.time += dt;
 
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let pixel_index = (y * self.width + x) as usize;
-                self.colours[pixel_index] = Colour::new(0.0, 0.0, 0.0); // Black background
-            }
+        // Clear the color buffer
+        for color in &mut self.colours {
+            *color = Colour::new(0.0, 0.0, 0.0);
         }
 
+        #[cfg(target_arch = "wasm32")]
+        let clear_time = performance_now();
+
+        // Pre-calculate constants to avoid repeated calculations
         let ray_origin = Tuple::point(0.0, 0.0, -10.0);
         let wall_z = 10.0;
         let wall_size = 7.0;
         let pixel_size = wall_size / self.height as f64;
         let half = wall_size / 2.0;
 
+        #[cfg(target_arch = "wasm32")]
+        let mut intersection_time = 0.0;
+        #[cfg(target_arch = "wasm32")]
+        let mut lighting_time = 0.0;
+        #[cfg(target_arch = "wasm32")]
+        let mut ray_count = 0;
+
         for y in 0..self.height {
             let world_y = half - pixel_size * y as f64;
+            let y_offset = (y * self.width) as usize;
+
             for x in 0..self.width {
                 let world_x = half - pixel_size * x as f64;
+                let pixel_index = y_offset + x as usize;
 
-                let pixel_index = (y * self.width + x) as usize;
                 let position = Tuple::point(world_x, world_y, wall_z);
-                let r = Ray::new(ray_origin, (position - ray_origin).normalise());
-                let xs = intersect(&self.scene.sphere, &r);
+                let direction = (position - ray_origin).normalise();
+                let r = Ray::new(ray_origin, direction);
 
+                #[cfg(target_arch = "wasm32")]
+                let intersect_start = performance_now();
+
+                let xs = intersect(&self.scene.sphere, &r);
                 let hit = intersection::hit(&xs);
 
+                #[cfg(target_arch = "wasm32")]
+                {
+                    intersection_time += performance_now() - intersect_start;
+                    ray_count += 1;
+                }
+
                 if let Some(hit_intersection) = hit {
+                    #[cfg(target_arch = "wasm32")]
+                    let lighting_start = performance_now();
+
                     let point = r.position(hit_intersection.t);
                     let normalv = sphere::normal_at(&self.scene.sphere, &point);
                     let eyev = -r.direction;
@@ -103,11 +143,35 @@ impl RenderContext {
                     );
 
                     self.colours[pixel_index] = colour;
+
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        lighting_time += performance_now() - lighting_start;
+                    }
                 }
             }
         }
 
+        #[cfg(target_arch = "wasm32")]
+        let raytracing_time = performance_now();
+
         self.update_buffer_from_colours();
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let total_time = performance_now() - start_time;
+            let buffer_time = performance_now() - raytracing_time;
+
+            console_log(&format!(
+                "Render breakdown: Total: {:.2}ms, Clear: {:.2}ms, Intersections: {:.2}ms, Lighting: {:.2}ms, Buffer: {:.2}ms, Rays: {}",
+                total_time,
+                clear_time - start_time,
+                intersection_time,
+                lighting_time,
+                buffer_time,
+                ray_count
+            ));
+        }
     }
 
     pub fn get_image_buffer_pointer(&self) -> *const u8 {

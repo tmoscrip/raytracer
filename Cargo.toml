@@ -4,10 +4,25 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2.100"
 
 [dev-dependencies]
 approx = "0.5"
+criterion = "0.5"
+
+# Add profiling and optimization configurations
+[profile.release]
+debug = true  # Enable debug symbols for profiling
+lto = true    # Link-time optimization
+codegen-units = 1  # Better optimization
+panic = "abort"    # Smaller binary size
+
+[profile.bench]
+debug = true
+
+[[bench]]
+name = "raytracer_bench"
+harness = false

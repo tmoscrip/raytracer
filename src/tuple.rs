@@ -28,19 +28,23 @@ impl Tuple {
         self.w == 0.0
     }
 
+    #[inline]
     pub fn magnitude(&self) -> f64 {
         (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).sqrt()
     }
 
+    #[inline]
     pub fn normalise(&self) -> Tuple {
+        let mag = self.magnitude();
         Tuple {
-            x: self.x / self.magnitude(),
-            y: self.y / self.magnitude(),
-            z: self.z / self.magnitude(),
-            w: self.w / self.magnitude(),
+            x: self.x / mag,
+            y: self.y / mag,
+            z: self.z / mag,
+            w: self.w / mag,
         }
     }
 
+    #[inline]
     pub fn dot(&self, other: &Tuple) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
     }

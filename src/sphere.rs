@@ -9,19 +9,23 @@ static SPHERE_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
 pub struct Sphere {
     pub id: u32,
     pub transform: Matrix,
+    pub inverse_transform: Matrix,
     pub material: Material,
 }
 
 impl Sphere {
     pub fn new() -> Sphere {
+        let identity = Matrix::identity();
         Sphere {
             id: SPHERE_ID_COUNTER.fetch_add(1, Ordering::Relaxed),
-            transform: Matrix::identity(),
+            transform: identity.clone(),
+            inverse_transform: identity,
             material: Material::new(),
         }
     }
 
     pub fn set_transform(&mut self, transform: Matrix) {
+        self.inverse_transform = transform.inverse();
         self.transform = transform;
     }
 
@@ -30,8 +34,9 @@ impl Sphere {
     }
 }
 
+#[inline]
 pub fn intersect(sphere: &Sphere, ray: &Ray) -> Vec<Intersection> {
-    let transformed_ray = ray.clone().transform(&sphere.transform.clone().inverse());
+    let transformed_ray = ray.clone().transform(&sphere.inverse_transform);
     let sphere_to_ray = transformed_ray.origin - Tuple::point(0.0, 0.0, 0.0);
     let a = transformed_ray.direction.dot(&transformed_ray.direction);
     let b = 2.0 * transformed_ray.direction.dot(&sphere_to_ray);
@@ -41,28 +46,23 @@ pub fn intersect(sphere: &Sphere, ray: &Ray) -> Vec<Intersection> {
     if discriminant < 0.0 {
         return vec![];
     } else {
-        let t1 = (-b - discriminant.sqrt()) / (2.0 * a);
-        let t2 = (-b + discriminant.sqrt()) / (2.0 * a);
-        let xs = vec![t1, t2]
-            .iter()
-            .map(|&t| Intersection::new(t, sphere))
-            .collect();
-        return xs;
+        let sqrt_discriminant = discriminant.sqrt();
+        let inv_2a = 1.0 / (2.0 * a);
+        let t1 = (-b - sqrt_discriminant) * inv_2a;
+        let t2 = (-b + sqrt_discriminant) * inv_2a;
+
+        vec![Intersection::new(t1, sphere), Intersection::new(t2, sphere)]
     }
 }
 
+#[inline]
 pub fn normal_at(sphere: &Sphere, world_point: &Tuple) -> Tuple {
-    // Transform world point to object space
-    let object_point = sphere.transform.inverse() * world_point.clone();
+    let object_point = sphere.inverse_transform.clone() * world_point.clone();
 
-    // Calculate normal in object space (for unit sphere at origin)
     let object_normal = object_point - Tuple::point(0.0, 0.0, 0.0);
 
-    // Transform normal back to world space
-    // Use transpose of inverse for normal transformation
-    let world_normal = sphere.transform.inverse().transpose() * object_normal;
+    let world_normal = sphere.inverse_transform.transpose() * object_normal;
 
-    // Set w to 0 (ensure it's a vector) and normalize
     let result = Tuple::vector(world_normal.x, world_normal.y, world_normal.z);
     result.normalise()
 }

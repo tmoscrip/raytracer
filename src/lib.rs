@@ -10,3 +10,27 @@ pub mod render_context;
 pub mod simulation;
 pub mod sphere;
 pub mod tuple;
+
+// Add a simple performance timing utility
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    #[wasm_bindgen(js_namespace = performance)]
+    fn now() -> f64;
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn console_log(s: &str) {
+    log(s);
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn performance_now() -> f64 {
+    now()
+}
