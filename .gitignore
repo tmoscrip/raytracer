@@ -18,3 +18,4 @@ Thumbs.db
 
 # Other
 *.pdf
+/benchmark_output/

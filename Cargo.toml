@@ -12,16 +12,19 @@ wasm-bindgen = "0.2.100"
 [dev-dependencies]
 approx = "0.5"
 criterion = "0.5"
+image = "0.25"
 
 # Add profiling and optimization configurations
 [profile.release]
-debug = true  # Enable debug symbols for profiling
+debug = false 
 lto = true    # Link-time optimization
 codegen-units = 1  # Better optimization
 panic = "abort"    # Smaller binary size
+incremental = true
 
 [profile.bench]
-debug = true
+debug = false
+incremental = true
 
 [[bench]]
 name = "raytracer_bench"

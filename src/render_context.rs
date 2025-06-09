@@ -58,6 +58,14 @@ impl RenderContext {
         self.buffer.as_ptr()
     }
 
+    pub fn get_width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn get_height(&self) -> u32 {
+        self.height
+    }
+
     // Helper method to convert colours to buffer
     fn update_buffer_from_colours(&mut self) {
         // Process pixels in chunks for better cache locality
