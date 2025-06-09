@@ -68,9 +68,7 @@ self.onmessage = async function (e) {
           renderContext = new RenderContext(fullWidth, fullHeight);
         }
 
-        // Update scene parameters
-        renderContext.update_light_position(lightX, lightY, lightZ);
-        renderContext.update_sphere_position(sphereX, sphereY, sphereZ);
+        // Scene parameters are now fixed since controls were removed
 
         // Render the tile and store it
         renderContext.render_tile_and_store(

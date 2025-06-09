@@ -6,6 +6,10 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 static SPHERE_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
 
+pub fn reset_sphere_counter() {
+    SPHERE_ID_COUNTER.store(0, Ordering::Relaxed);
+}
+
 #[derive(Clone)]
 pub struct Sphere {
     pub id: u32,
@@ -20,7 +24,7 @@ impl Sphere {
         Sphere {
             id: SPHERE_ID_COUNTER.fetch_add(1, Ordering::Relaxed),
             transform: identity.clone(),
-            inverse_transform: identity,
+            inverse_transform: identity.inverse(),
             material: Material::new(),
         }
     }

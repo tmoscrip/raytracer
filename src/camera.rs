@@ -1,12 +1,42 @@
-use std::fs::DirEntry;
+use crate::{colour::Colour, matrix::Matrix, ray::Ray, tuple::Tuple, world::World};
 
-use crate::{matrix::Matrix, ray::Ray, tuple::Tuple, world::World};
+pub struct Canvas {
+    pub width: usize,
+    pub height: usize,
+    pixels: Vec<Colour>,
+}
+
+impl Canvas {
+    pub fn new(width: usize, height: usize) -> Self {
+        let pixels = vec![Colour::black(); width * height];
+        Canvas {
+            width,
+            height,
+            pixels,
+        }
+    }
+
+    pub fn pixel_at(&self, x: usize, y: usize) -> Colour {
+        if x < self.width && y < self.height {
+            self.pixels[y * self.width + x]
+        } else {
+            Colour::black()
+        }
+    }
+
+    pub fn write_pixel(&mut self, x: usize, y: usize, colour: Colour) {
+        if x < self.width && y < self.height {
+            self.pixels[y * self.width + x] = colour;
+        }
+    }
+}
 
 pub struct Camera {
     pub hsize: usize,
     pub vsize: usize,
     pub field_of_view: f64,
     pub transform: Matrix,
+    pub inverse_transform: Matrix,
     pub half_width: f64,
     pub half_height: f64,
     pub pixel_size: f64,
@@ -25,15 +55,22 @@ impl Camera {
             half_width = half_view * aspect;
             half_height = half_view;
         }
+        let identity = Matrix::identity();
         Camera {
             hsize,
             vsize,
             field_of_view,
-            transform: Matrix::identity(),
+            transform: identity.clone(),
+            inverse_transform: identity,
             half_width,
             half_height,
             pixel_size: (half_width * 2.0) / hsize as f64,
         }
+    }
+
+    pub fn set_transform(&mut self, transform: Matrix) {
+        self.inverse_transform = transform.inverse();
+        self.transform = transform;
     }
 
     pub fn ray_for_pixel(&self, x: usize, y: usize) -> Ray {
@@ -44,11 +81,36 @@ impl Camera {
         let world_y = self.half_height - yoffset as f64;
 
         // canvas at -1
-        let pixel = self.transform.inverse() * Tuple::point(world_x, world_y, -1.0);
-        let origin = self.transform.inverse() * Tuple::point(0.0, 0.0, 0.0);
+        let pixel = self.inverse_transform.clone() * Tuple::point(world_x, world_y, -1.0);
+        let origin = self.inverse_transform.clone() * Tuple::point(0.0, 0.0, 0.0);
         let direction = (pixel - origin).normalise();
 
         return Ray::new(origin, direction);
+    }
+
+    pub fn render(&self, world: &World) -> Canvas {
+        let mut image = Canvas::new(self.hsize, self.vsize);
+
+        for y in 0..self.vsize {
+            for x in 0..self.hsize {
+                let ray = self.ray_for_pixel(x, y);
+                let colour = world.colour_at(&ray);
+                image.write_pixel(x, y, colour);
+            }
+        }
+
+        image
+    }
+
+    pub fn render_to_buffer(&self, world: &World, buffer: &mut [Colour]) {
+        for y in 0..self.vsize {
+            for x in 0..self.hsize {
+                let ray = self.ray_for_pixel(x, y);
+                let colour = world.colour_at(&ray);
+                let pixel_index = y * self.hsize + x;
+                buffer[pixel_index] = colour;
+            }
+        }
     }
 }
 
@@ -114,7 +176,7 @@ mod tests {
     #[test]
     fn constructing_ray_when_camera_is_transformed() {
         let mut c = Camera::new(201, 101, PI / 2.0);
-        c.transform = Matrix::rotation_y(PI / 4.0) * Matrix::translation(0.0, -2.0, 5.0);
+        c.set_transform(Matrix::rotation_y(PI / 4.0) * Matrix::translation(0.0, -2.0, 5.0));
         let r = c.ray_for_pixel(100, 50);
 
         assert_abs_diff_eq!(r.origin, Tuple::point(0.0, 2.0, -5.0));
@@ -135,9 +197,8 @@ mod tests {
         let from = Tuple::point(0.0, 0.0, -5.0);
         let to = Tuple::point(0.0, 0.0, 0.0);
         let up = Tuple::vector(0.0, 1.0, 0.0);
-        c.transform = view_transform(from, to, up);
+        c.set_transform(view_transform(from, to, up));
 
-        // TODO: implement
         let image = c.render(&w);
 
         assert_abs_diff_eq!(

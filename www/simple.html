@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+    <title>Raytracer - Simple</title>
+    <style>
+      /* Compact sizing overrides */
+      :root {
+        --pico-font-size: 0.875rem;
+        --pico-spacing: 0.75rem;
+        --pico-form-element-spacing-vertical: 0.5rem;
+        --pico-form-element-spacing-horizontal: 0.75rem;
+      }
+
+      .container {
+        padding: 1rem;
+      }
+
+      h2 {
+        font-size: 1.25rem;
+        margin-bottom: 0.25rem;
+      }
+      h4 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+      p {
+        margin-bottom: 0.5rem;
+        font-size: 0.8rem;
+      }
+
+      /* Custom styles that complement Pico CSS */
+      .grid {
+        align-items: center;
+      }
+
+      .canvas-container {
+        text-align: center;
+        margin-bottom: var(--pico-spacing);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100%;
+      }
+
+      canvas {
+        border: 1px solid var(--pico-muted-border-color);
+        border-radius: var(--pico-border-radius);
+        box-shadow: var(--pico-box-shadow);
+      }
+
+      .coordinate-inputs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--pico-grid-column-gap);
+      }
+
+      .coordinate-inputs > div {
+        text-align: center;
+      }
+
+      .coordinate-inputs label {
+        font-size: 0.875rem;
+        font-weight: var(--pico-font-weight);
+        margin-bottom: calc(var(--pico-spacing) * 0.25);
+        display: block;
+      }
+
+      .performance-info {
+        background-color: var(--pico-card-background-color);
+        border: 1px solid var(--pico-muted-border-color);
+        border-radius: var(--pico-border-radius);
+        padding: var(--pico-spacing);
+        margin-top: var(--pico-spacing);
+      }
+
+      .performance-info div {
+        margin-bottom: calc(var(--pico-spacing) * 0.25);
+      }
+
+      .performance-info div:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Responsive layout */
+      @media (max-width: 768px) {
+        .container {
+          flex-direction: column;
+        }
+
+        .controls {
+          margin-top: var(--pico-spacing);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <div class="grid">
+        <div class="canvas-container">
+          <canvas id="canvas" width="400" height="400"></canvas>
+        </div>
+
+        <aside class="controls">
+          <hgroup>
+            <h2>Raytracer - Simple</h2>
+            <p>Single-threaded ray tracing with Rust WASM</p>
+          </hgroup>
+
+          <div class="performance-info">
+            <strong>Performance Metrics</strong>
+            <div>FPS: <span id="fps">0</span></div>
+            <div>Render Time: <span id="renderTime">0</span>ms</div>
+            <div>Status: <span id="status">Loading...</span></div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- Load WASM bindings -->
+    <script src="./pkg/raytracer.js"></script>
+
+    <script>
+      class SimpleRaytracer {
+        constructor(canvas) {
+          this.canvas = canvas;
+          this.ctx = canvas.getContext("2d");
+          this.width = canvas.width;
+          this.height = canvas.height;
+
+          this.renderContext = null;
+          this.wasmModule = null;
+          this.isInitialized = false;
+
+          this.frameCount = 0;
+          this.lastFpsTime = performance.now();
+          this.lastRenderTime = 0;
+
+          // Performance display elements
+          this.fpsDisplay = document.getElementById("fps");
+          this.renderTimeDisplay = document.getElementById("renderTime");
+          this.statusDisplay = document.getElementById("status");
+
+          this.setupEventListeners();
+          this.init();
+        }
+
+        async init() {
+          try {
+            this.statusDisplay.textContent = "Initializing WASM...";
+
+            // Initialize the WASM module using wasm_bindgen global
+            this.wasmModule = await wasm_bindgen({
+              module_or_path: "./pkg/raytracer_bg.wasm",
+            });
+
+            // Store memory reference for later use
+            this.memory = this.wasmModule.memory;
+
+            // Get the RenderContext constructor from wasm_bindgen namespace
+            const RenderContext = wasm_bindgen.RenderContext;
+
+            if (!RenderContext) {
+              throw new Error("RenderContext not found in WASM exports");
+            }
+
+            // Create render context
+            this.renderContext = new RenderContext(this.width, this.height);
+            this.isInitialized = true;
+
+            this.statusDisplay.textContent = "Ready";
+            console.log("WASM module initialized successfully");
+
+            // Start the render loop
+            this.startRenderLoop();
+          } catch (error) {
+            console.error("Failed to initialize WASM:", error);
+            this.statusDisplay.textContent = "Error: " + error.message;
+          }
+        }
+
+        setupEventListeners() {
+          // No event listeners needed
+        }
+
+        render() {
+          if (!this.isInitialized || !this.renderContext) return;
+
+          const startTime = performance.now();
+
+          try {
+            // Render the scene
+            this.renderContext.render(16.67); // ~60 FPS delta time
+
+            // Get the image buffer from WASM memory
+            const bufferPtr = this.renderContext.get_image_buffer_pointer();
+            const bufferSize = this.width * this.height * 4;
+
+            // Create a view into the WASM memory
+            const memory = new Uint8ClampedArray(
+              this.memory.buffer,
+              bufferPtr,
+              bufferSize
+            );
+
+            // Create ImageData and draw to canvas
+            const imageData = new ImageData(memory, this.width, this.height);
+            this.ctx.putImageData(imageData, 0, 0);
+
+            // Update performance metrics
+            this.lastRenderTime = performance.now() - startTime;
+            this.frameCount++;
+          } catch (error) {
+            console.error("Render error:", error);
+            this.statusDisplay.textContent = "Render Error: " + error.message;
+          }
+        }
+
+        updateFPS() {
+          const now = performance.now();
+          const timeDiff = now - this.lastFpsTime;
+
+          if (timeDiff >= 1000) {
+            const fps = (this.frameCount * 1000) / timeDiff;
+            this.fpsDisplay.textContent = fps.toFixed(1);
+            this.renderTimeDisplay.textContent = this.lastRenderTime.toFixed(1);
+            this.frameCount = 0;
+            this.lastFpsTime = now;
+          }
+        }
+
+        startRenderLoop() {
+          console.log("Starting render loop");
+
+          const loop = () => {
+            this.render();
+            this.updateFPS();
+            requestAnimationFrame(loop);
+          };
+
+          requestAnimationFrame(loop);
+        }
+      }
+
+      // Initialize the simple raytracer
+      const canvas = document.getElementById("canvas");
+      const raytracer = new SimpleRaytracer(canvas);
+    </script>
+  </body>
+</html>

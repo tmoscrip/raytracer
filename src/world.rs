@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use crate::{
     colour::Colour,
     intersection::{hit, prepare_computations, Intersection, PreComputedData},
@@ -28,6 +30,9 @@ impl World {
     pub fn default_world() -> Self {
         use crate::{colour::Colour, matrix::Matrix, tuple::Tuple};
 
+        // Reset sphere counter to ensure consistent IDs
+        crate::sphere::reset_sphere_counter();
+
         // Create default light
         let light_position = Tuple::point(-10.0, 10.0, -10.0);
         let light_intensity = Colour::new(1.0, 1.0, 1.0);
@@ -50,6 +55,89 @@ impl World {
 
         world.add_object(s1);
         world.add_object(s2);
+
+        world
+    }
+
+    pub fn test_world() -> Self {
+        use crate::{colour::Colour, materials::Material, matrix::Matrix, tuple::Tuple};
+        use std::f64::consts::PI;
+
+        // Reset sphere counter to ensure consistent IDs
+        crate::sphere::reset_sphere_counter();
+
+        // Create light source
+        let light_position = Tuple::point(-10.0, 10.0, -10.0);
+        let light_intensity = Colour::new(1.0, 1.0, 1.0);
+        let light = Light::point_light(light_position, light_intensity);
+
+        let mut world = World {
+            registry: SphereRegistry::new(),
+            light: Some(light),
+        };
+
+        // 1. Floor - extremely flattened sphere with matte texture
+        let mut floor = Sphere::new();
+        floor.set_transform(Matrix::scaling(10.0, 0.01, 10.0));
+        floor.material = Material::new();
+        floor.material.colour = Colour::new(1.0, 0.9, 0.9);
+        floor.material.specular = 0.0;
+        world.add_object(floor);
+
+        // 2. Left wall
+        let mut left_wall = Sphere::new();
+        left_wall.set_transform(
+            Matrix::translation(0.0, 0.0, 5.0)
+                * Matrix::rotation_y(-PI / 4.0)
+                * Matrix::rotation_x(PI / 2.0)
+                * Matrix::scaling(10.0, 0.01, 10.0),
+        );
+        left_wall.material = Material::new();
+        left_wall.material.colour = Colour::new(1.0, 0.9, 0.9);
+        left_wall.material.specular = 0.0;
+        world.add_object(left_wall);
+
+        // 3. Right wall
+        let mut right_wall = Sphere::new();
+        right_wall.set_transform(
+            Matrix::translation(0.0, 0.0, 5.0)
+                * Matrix::rotation_y(PI / 4.0)
+                * Matrix::rotation_x(PI / 2.0)
+                * Matrix::scaling(10.0, 0.01, 10.0),
+        );
+        right_wall.material = Material::new();
+        right_wall.material.colour = Colour::new(1.0, 0.9, 0.9);
+        right_wall.material.specular = 0.0;
+        world.add_object(right_wall);
+
+        // 4. Middle sphere - large green sphere
+        let mut middle = Sphere::new();
+        middle.set_transform(Matrix::translation(-0.5, 1.0, 0.5));
+        middle.material = Material::new();
+        middle.material.colour = Colour::new(0.1, 1.0, 0.5);
+        middle.material.diffuse = 0.7;
+        middle.material.specular = 0.3;
+        world.add_object(middle);
+
+        // 5. Right sphere - smaller green sphere
+        let mut right = Sphere::new();
+        right.set_transform(Matrix::translation(1.5, 0.5, -0.5) * Matrix::scaling(0.5, 0.5, 0.5));
+        right.material = Material::new();
+        right.material.colour = Colour::new(0.5, 1.0, 0.1);
+        right.material.diffuse = 0.7;
+        right.material.specular = 0.3;
+        world.add_object(right);
+
+        // 6. Left sphere - smallest sphere
+        let mut left = Sphere::new();
+        left.set_transform(
+            Matrix::translation(-1.5, 0.33, -0.75) * Matrix::scaling(0.33, 0.33, 0.33),
+        );
+        left.material = Material::new();
+        left.material.colour = Colour::new(1.0, 0.8, 0.1);
+        left.material.diffuse = 0.7;
+        left.material.specular = 0.3;
+        world.add_object(left);
 
         world
     }

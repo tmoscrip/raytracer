@@ -137,48 +137,6 @@
           </hgroup>
 
           <article>
-            <header><h4>Light Position</h4></header>
-            <div class="coordinate-inputs">
-              <div>
-                <label for="lightX">X</label>
-                <input type="number" id="lightX" value="15" step="1" disabled />
-              </div>
-              <div>
-                <label for="lightY">Y</label>
-                <input type="number" id="lightY" value="5" step="1" disabled />
-              </div>
-              <div>
-                <label for="lightZ">Z</label>
-                <input
-                  type="number"
-                  id="lightZ"
-                  value="-10"
-                  step="1"
-                  disabled
-                />
-              </div>
-            </div>
-          </article>
-
-          <article>
-            <header><h4>Sphere Position</h4></header>
-            <div class="coordinate-inputs">
-              <div>
-                <label for="sphereX">X</label>
-                <input type="number" id="sphereX" value="0" step="0.1" />
-              </div>
-              <div>
-                <label for="sphereY">Y</label>
-                <input type="number" id="sphereY" value="0" step="0.1" />
-              </div>
-              <div>
-                <label for="sphereZ">Z</label>
-                <input type="number" id="sphereZ" value="0" step="0.1" />
-              </div>
-            </div>
-          </article>
-
-          <article>
             <label for="workerCount">
               Worker Count:
               <span id="workerCountDisplay" class="range-display">4</span>
@@ -187,11 +145,6 @@
           </article>
 
           <fieldset>
-            <label>
-              <input type="checkbox" id="animateLight" checked />
-              Animate Light Position
-            </label>
-
             <label>
               <input type="checkbox" id="debugTiles" />
               Show Tile Debug Info
@@ -244,22 +197,8 @@
           this.pendingRender = false;
           this.renderLoopStarted = false;
 
-          // Light animation properties
-          this.animationStartTime = performance.now();
-          this.lightAnimationEnabled = true;
-          this.baseLightX = 15;
-          this.baseLightY = 5;
-          this.baseLightZ = -10;
-
           // Get input elements
-          this.lightXInput = document.getElementById("lightX");
-          this.lightYInput = document.getElementById("lightY");
-          this.lightZInput = document.getElementById("lightZ");
-          this.sphereXInput = document.getElementById("sphereX");
-          this.sphereYInput = document.getElementById("sphereY");
-          this.sphereZInput = document.getElementById("sphereZ");
           this.workerCountInput = document.getElementById("workerCount");
-          this.animateLightInput = document.getElementById("animateLight");
           this.debugTilesInput = document.getElementById("debugTiles");
 
           // Performance display elements
@@ -311,44 +250,11 @@
             this.reinitWorkers();
           });
 
-          // Toggle light animation
-          this.animateLightInput.addEventListener("change", (e) => {
-            this.lightAnimationEnabled = e.target.checked;
-            if (this.lightAnimationEnabled) {
-              this.animationStartTime = performance.now();
-              // Store current manual values as base values
-              this.baseLightX = parseFloat(this.lightXInput.value);
-              this.baseLightY = parseFloat(this.lightYInput.value);
-              this.baseLightZ = parseFloat(this.lightZInput.value);
-              // Disable manual inputs
-              this.lightXInput.disabled = true;
-              this.lightYInput.disabled = true;
-              this.lightZInput.disabled = true;
-            } else {
-              // Re-enable manual inputs
-              this.lightXInput.disabled = false;
-              this.lightYInput.disabled = false;
-              this.lightZInput.disabled = false;
-            }
-          });
-
           // Toggle debug info
           this.debugTilesInput.addEventListener("change", (e) => {
             this.tileDebugDiv.style.display = e.target.checked
               ? "block"
               : "none";
-          });
-
-          // Trigger re-render on parameter changes
-          [
-            this.lightXInput,
-            this.lightYInput,
-            this.lightZInput,
-            this.sphereXInput,
-            this.sphereYInput,
-            this.sphereZInput,
-          ].forEach((input) => {
-            input.addEventListener("input", () => this.scheduleRender());
           });
         }
 
@@ -508,36 +414,6 @@
           }
         }
 
-        updateLightAnimation() {
-          if (!this.lightAnimationEnabled) return;
-
-          const now = performance.now();
-          const elapsed = (now - this.animationStartTime) / 1000; // Convert to seconds
-
-          // Create parabolic motion using the base values as reference scale
-          const scale = Math.abs(this.baseLightX) || 10; // Use base X as scale reference
-
-          // Parabolic path parameters
-          const speed = 1.5; // Animation speed multiplier
-          const t = elapsed * speed;
-
-          // X: Sine wave for left-right movement
-          const lightX = this.baseLightX + scale * 0.8 * Math.sin(t);
-
-          // Y: Parabolic curve (up and down)
-          const lightY =
-            this.baseLightY +
-            scale * 0.6 * Math.sin(t * 0.7) * Math.cos(t * 0.3);
-
-          // Z: Gentle forward-backward movement
-          const lightZ = this.baseLightZ + scale * 0.4 * Math.cos(t * 0.6);
-
-          // Update the input values (for display)
-          this.lightXInput.value = lightX.toFixed(1);
-          this.lightYInput.value = lightY.toFixed(1);
-          this.lightZInput.value = lightZ.toFixed(1);
-        }
-
         scheduleRender() {
           if (this.isRendering) {
             this.pendingRender = true;
@@ -558,14 +434,14 @@
             this.tileDebugContent.innerHTML = "";
           }
 
-          // Get current scene parameters
+          // Get current scene parameters (empty for now since controls are removed)
           const sceneParams = {
-            lightX: parseFloat(this.lightXInput.value),
-            lightY: parseFloat(this.lightYInput.value),
-            lightZ: parseFloat(this.lightZInput.value),
-            sphereX: parseFloat(this.sphereXInput.value),
-            sphereY: parseFloat(this.sphereYInput.value),
-            sphereZ: parseFloat(this.sphereZInput.value),
+            lightX: 15,
+            lightY: 5,
+            lightZ: -10,
+            sphereX: 0,
+            sphereY: 0,
+            sphereZ: 0,
           };
 
           // Distribute tiles among available workers
@@ -636,7 +512,6 @@
           console.log("Starting render loop");
 
           const loop = () => {
-            this.updateLightAnimation();
             this.scheduleRender();
             this.updatePerformanceDisplay();
             setTimeout(loop, 16); // ~60 FPS
