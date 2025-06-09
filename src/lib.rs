@@ -1,3 +1,4 @@
+pub mod camera;
 pub mod colour;
 pub mod environment;
 pub mod intersection;
@@ -9,7 +10,10 @@ pub mod ray;
 pub mod render_context;
 pub mod simulation;
 pub mod sphere;
+pub mod sphere_registry;
+pub mod transformations;
 pub mod tuple;
+pub mod world;
 
 // Add a simple performance timing utility
 #[cfg(target_arch = "wasm32")]

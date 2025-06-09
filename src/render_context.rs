@@ -1,8 +1,8 @@
 use crate::{
     colour::Colour,
     intersection,
-    light::{self, Light},
-    materials::{self, lighting},
+    light::Light,
+    materials::{self},
     matrix::Matrix,
     ray::Ray,
     sphere::{self, intersect, Sphere},
@@ -204,7 +204,7 @@ impl RenderContext {
         tile_y: u32,
         tile_width: u32,
         tile_height: u32,
-        full_width: u32,
+        _full_width: u32,
         full_height: u32,
     ) -> Vec<u8> {
         #[cfg(target_arch = "wasm32")]

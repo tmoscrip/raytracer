@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 static SPHERE_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
 
+#[derive(Clone)]
 pub struct Sphere {
     pub id: u32,
     pub transform: Matrix,

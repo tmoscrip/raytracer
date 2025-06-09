@@ -1,4 +1,8 @@
-use crate::sphere::Sphere;
+use crate::{
+    ray::Ray,
+    sphere::{normal_at, Sphere},
+    tuple::Tuple,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Intersection {
@@ -19,6 +23,43 @@ pub fn hit(xs: &[Intersection]) -> Option<&Intersection> {
     xs.iter()
         .filter(|intersection| intersection.t >= 0.0)
         .min_by(|a, b| a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal))
+}
+
+pub struct PreComputedData {
+    pub t: f64,
+    pub object: Sphere,
+    pub point: Tuple,
+    pub eyev: Tuple,
+    pub normalv: Tuple,
+    pub inside: bool,
+}
+
+pub fn prepare_computations(
+    intersection: &Intersection,
+    ray: &Ray,
+    registry: &crate::sphere_registry::SphereRegistry,
+) -> Option<PreComputedData> {
+    let sphere = registry.get(intersection.sphere_id)?;
+    let point = ray.position(intersection.t);
+    let eyev = -(ray.direction);
+    let mut normalv = normal_at(sphere, &point);
+
+    let inside: bool;
+    if normalv.clone().dot(&eyev) < 0.0 {
+        inside = true;
+        normalv = -normalv;
+    } else {
+        inside = false;
+    }
+
+    Some(PreComputedData {
+        t: intersection.t,
+        object: sphere.clone(),
+        point: point.clone(),
+        eyev,
+        normalv,
+        inside,
+    })
 }
 
 #[cfg(test)]
@@ -106,5 +147,67 @@ mod tests {
         let i = hit(&xs);
 
         assert_eq!(i, Some(&i4));
+    }
+
+    #[test]
+    fn precomputing_state_of_intersection() {
+        let r = crate::ray::Ray::new(
+            crate::tuple::Tuple::point(0.0, 0.0, -5.0),
+            crate::tuple::Tuple::vector(0.0, 0.0, 1.0),
+        );
+        let shape = Sphere::new();
+        let i = Intersection::new(4.0, &shape);
+
+        // Create a registry and register the sphere
+        let mut registry = crate::sphere_registry::SphereRegistry::new();
+        registry.register(shape);
+
+        let comps = prepare_computations(&i, &r, &registry).unwrap();
+
+        assert_eq!(comps.t, i.t);
+        assert_eq!(comps.object.id, i.sphere_id);
+        assert_eq!(comps.point, crate::tuple::Tuple::point(0.0, 0.0, -1.0));
+        assert_eq!(comps.eyev, crate::tuple::Tuple::vector(0.0, 0.0, -1.0));
+        assert_eq!(comps.normalv, crate::tuple::Tuple::vector(0.0, 0.0, -1.0));
+    }
+
+    #[test]
+    fn hit_when_intersection_occurs_on_outside() {
+        let r = crate::ray::Ray::new(
+            crate::tuple::Tuple::point(0.0, 0.0, -5.0),
+            crate::tuple::Tuple::vector(0.0, 0.0, 1.0),
+        );
+        let shape = Sphere::new();
+        let i = Intersection::new(4.0, &shape);
+
+        // Create a registry and register the sphere
+        let mut registry = crate::sphere_registry::SphereRegistry::new();
+        registry.register(shape);
+
+        let comps = prepare_computations(&i, &r, &registry).unwrap();
+
+        assert_eq!(comps.inside, false);
+    }
+
+    #[test]
+    fn hit_when_intersection_occurs_on_inside() {
+        let r = crate::ray::Ray::new(
+            crate::tuple::Tuple::point(0.0, 0.0, 0.0),
+            crate::tuple::Tuple::vector(0.0, 0.0, 1.0),
+        );
+        let shape = Sphere::new();
+        let i = Intersection::new(1.0, &shape);
+
+        // Create a registry and register the sphere
+        let mut registry = crate::sphere_registry::SphereRegistry::new();
+        registry.register(shape);
+
+        let comps = prepare_computations(&i, &r, &registry).unwrap();
+
+        assert_eq!(comps.point, crate::tuple::Tuple::point(0.0, 0.0, 1.0));
+        assert_eq!(comps.eyev, crate::tuple::Tuple::vector(0.0, 0.0, -1.0));
+        assert_eq!(comps.inside, true);
+        // normal would have been (0, 0, 1), but is inverted!
+        assert_eq!(comps.normalv, crate::tuple::Tuple::vector(0.0, 0.0, -1.0));
     }
 }
