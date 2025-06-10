@@ -1,8 +1,4 @@
-use crate::{
-    ray::Ray,
-    shape::{Shape, Sphere},
-    tuple::Tuple,
-};
+use crate::{ray::Ray, shape::Shape, tuple::Tuple};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Intersection {
@@ -38,7 +34,7 @@ pub struct PreComputedData<'a> {
 pub fn prepare_computations<'a>(
     intersection: &Intersection,
     ray: &Ray,
-    registry: &'a crate::sphere_registry::SphereRegistry,
+    registry: &'a crate::sphere_registry::ShapeRegistry,
 ) -> Option<PreComputedData<'a>> {
     let sphere = registry.get(intersection.object_id)?;
     let point = ray.position(intersection.t);
@@ -67,8 +63,9 @@ pub fn prepare_computations<'a>(
 
 #[cfg(test)]
 mod tests {
+    use crate::shape::sphere::Sphere;
+
     use super::*;
-    use crate::shape::Sphere;
 
     #[test]
     fn intersection_encapsulates_t_and_object() {
@@ -161,7 +158,7 @@ mod tests {
         let i = Intersection::new(4.0, &shape);
 
         // Create a registry and register the sphere
-        let mut registry = crate::sphere_registry::SphereRegistry::new();
+        let mut registry = crate::sphere_registry::ShapeRegistry::new();
         registry.register(shape);
 
         let comps = prepare_computations(&i, &r, &registry).unwrap();
@@ -183,7 +180,7 @@ mod tests {
         let i = Intersection::new(4.0, &shape);
 
         // Create a registry and register the sphere
-        let mut registry = crate::sphere_registry::SphereRegistry::new();
+        let mut registry = crate::sphere_registry::ShapeRegistry::new();
         registry.register(shape);
 
         let comps = prepare_computations(&i, &r, &registry).unwrap();
@@ -201,7 +198,7 @@ mod tests {
         let i = Intersection::new(1.0, &shape);
 
         // Create a registry and register the sphere
-        let mut registry = crate::sphere_registry::SphereRegistry::new();
+        let mut registry = crate::sphere_registry::ShapeRegistry::new();
         registry.register(shape);
 
         let comps = prepare_computations(&i, &r, &registry).unwrap();
@@ -223,7 +220,7 @@ mod tests {
         shape.set_transform(crate::matrix::Matrix::translation(0.0, 0.0, 1.0));
         let i = Intersection::new(5.0, &shape);
 
-        let mut registry = crate::sphere_registry::SphereRegistry::new();
+        let mut registry = crate::sphere_registry::ShapeRegistry::new();
         registry.register(shape);
 
         let comps = prepare_computations(&i, &r, &registry).unwrap();

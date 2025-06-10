@@ -4,33 +4,33 @@ use crate::{
     light::Light,
     materials::lighting,
     ray::Ray,
-    shape::{Shape, Sphere},
-    sphere_registry::SphereRegistry,
+    shape::{sphere::Sphere, Shape},
+    sphere_registry::ShapeRegistry,
     tuple::Tuple,
 };
 
 pub struct World {
-    pub registry: SphereRegistry,
+    pub registry: ShapeRegistry,
     pub light: Option<Light>,
 }
 
 impl World {
     pub fn new() -> Self {
         World {
-            registry: SphereRegistry::new(),
+            registry: ShapeRegistry::new(),
             light: Option::None,
         }
     }
 
-    pub fn add_object(&mut self, sphere: Sphere) -> u32 {
-        self.registry.register(sphere)
+    pub fn add_object<T: Shape + 'static>(&mut self, object: T) -> u32 {
+        self.registry.register(object)
     }
 
     pub fn default_world() -> Self {
         use crate::{colour::Colour, materials::Material, matrix::Matrix, tuple::Tuple};
 
         // Reset sphere counter to ensure consistent IDs
-        crate::shape::reset_sphere_counter();
+        crate::shape::sphere::reset_sphere_counter();
 
         // Create default light
         let light_position = Tuple::point(-10.0, 10.0, -10.0);
@@ -50,7 +50,7 @@ impl World {
         s2.set_transform(Matrix::scaling(0.5, 0.5, 0.5));
 
         let mut world = World {
-            registry: SphereRegistry::new(),
+            registry: ShapeRegistry::new(),
             light: Some(light),
         };
 
@@ -65,7 +65,7 @@ impl World {
         use std::f64::consts::PI;
 
         // Reset sphere counter to ensure consistent IDs
-        crate::shape::reset_sphere_counter();
+        crate::shape::sphere::reset_sphere_counter();
 
         // Create light source
         let light_position = Tuple::point(-10.0, 10.0, -10.0);
@@ -73,7 +73,7 @@ impl World {
         let light = Light::point_light(light_position, light_intensity);
 
         let mut world = World {
-            registry: SphereRegistry::new(),
+            registry: ShapeRegistry::new(),
             light: Some(light),
         };
 
@@ -398,7 +398,7 @@ mod tests {
 
         let mut s2 = Sphere::new();
         s2.set_transform(crate::matrix::Matrix::translation(0.0, 0.0, 10.0));
-        let s2_id = w.add_object(s2.clone());
+        let s2_id = w.add_object(s2);
 
         let r = Ray::new(Tuple::point(0.0, 0.0, 5.0), Tuple::vector(0.0, 0.0, 1.0));
         let i = Intersection {

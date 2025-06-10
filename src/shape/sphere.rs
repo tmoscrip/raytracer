@@ -1,51 +1,18 @@
-use crate::materials::Material;
-use crate::matrix::Matrix;
-use crate::tuple::Tuple;
-use crate::{intersection::Intersection, ray::Ray};
 use std::sync::atomic::{AtomicU32, Ordering};
+
+use crate::{
+    intersection::Intersection,
+    materials::Material,
+    matrix::Matrix,
+    ray::Ray,
+    shape::{Shape, ShapeData},
+    tuple::Tuple,
+};
 
 static SPHERE_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 pub fn reset_sphere_counter() {
     SPHERE_ID_COUNTER.store(0, Ordering::Relaxed);
-}
-
-#[derive(Clone)]
-pub struct ShapeData {
-    pub id: u32,
-    pub transform: Matrix,
-    pub inverse_transform: Matrix,
-    pub material: Material,
-    // Optionally, add saved_ray for testing
-    // pub saved_ray: Option<Ray>,
-}
-
-pub trait Shape {
-    fn data(&self) -> &ShapeData;
-
-    fn id(&self) -> u32;
-    fn transform(&self) -> &Matrix;
-    fn inverse_transform(&self) -> &Matrix;
-    fn set_transform(&mut self, transform: Matrix);
-    fn material(&self) -> &Material;
-    fn set_material(&mut self, material: Material);
-
-    fn intersect(&self, ray: &Ray) -> Vec<Intersection> {
-        let local_ray = ray.clone().transform(&self.data().inverse_transform);
-        // self.data_mut().saved_ray = Some(local_ray.clone()); // for testing
-        self.local_intersect(&local_ray)
-    }
-
-    fn normal_at(&self, world_point: &Tuple) -> Tuple {
-        let object_point = self.data().inverse_transform.clone() * world_point.clone();
-        let object_normal = self.local_normal_at(&object_point);
-        let world_normal = self.data().inverse_transform.transpose() * object_normal;
-        Tuple::vector(world_normal.x, world_normal.y, world_normal.z).normalise()
-    }
-
-    // Abstract methods
-    fn local_intersect(&self, local_ray: &Ray) -> Vec<Intersection>;
-    fn local_normal_at(&self, local_point: &Tuple) -> Tuple;
 }
 
 #[derive(Clone)]

@@ -1,49 +1,49 @@
 use crate::shape::Shape;
 use std::collections::HashMap;
 
-pub struct SphereRegistry {
-    spheres: HashMap<u32, Box<dyn Shape>>,
+pub struct ShapeRegistry {
+    shapes: HashMap<u32, Box<dyn Shape>>,
     insertion_order: Vec<u32>, // Track insertion order for indexing
 }
 
-impl SphereRegistry {
+impl ShapeRegistry {
     pub fn new() -> Self {
-        SphereRegistry {
-            spheres: HashMap::new(),
+        ShapeRegistry {
+            shapes: HashMap::new(),
             insertion_order: Vec::new(),
         }
     }
 
-    pub fn register(&mut self, sphere: impl Shape + 'static) -> u32 {
-        let id = sphere.id();
-        self.spheres.insert(id, Box::new(sphere));
+    pub fn register<T: Shape + 'static>(&mut self, object: T) -> u32 {
+        let id = object.id();
+        self.shapes.insert(id, Box::new(object));
         self.insertion_order.push(id);
         id
     }
 
     pub fn get(&self, id: u32) -> Option<&dyn Shape> {
-        self.spheres.get(&id).map(|s| s.as_ref())
+        self.shapes.get(&id).map(|s| s.as_ref())
     }
 
     pub fn get_all_spheres(&self) -> Vec<&dyn Shape> {
-        self.spheres.values().map(|s| s.as_ref()).collect()
+        self.shapes.values().map(|s| s.as_ref()).collect()
     }
 
     // Get sphere by insertion order (0-based indexing)
     pub fn get_by_index(&self, index: usize) -> Option<&dyn Shape> {
         self.insertion_order
             .get(index)
-            .and_then(|id| self.spheres.get(id))
+            .and_then(|id| self.shapes.get(id))
             .map(|s| s.as_ref())
     }
 
     // Number of spheres in registry
     pub fn len(&self) -> usize {
-        self.spheres.len()
+        self.shapes.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.spheres.is_empty()
+        self.shapes.is_empty()
     }
 
     // Find sphere by predicate
@@ -51,7 +51,7 @@ impl SphereRegistry {
     where
         F: Fn(&dyn Shape) -> bool,
     {
-        self.spheres
+        self.shapes
             .values()
             .map(|s| s.as_ref())
             .find(|sphere| predicate(*sphere))
@@ -61,7 +61,7 @@ impl SphereRegistry {
     pub fn iter(&self) -> impl Iterator<Item = &dyn Shape> {
         self.insertion_order
             .iter()
-            .filter_map(move |id| self.spheres.get(id))
+            .filter_map(move |id| self.shapes.get(id))
             .map(|s| s.as_ref())
     }
 }
@@ -69,11 +69,11 @@ impl SphereRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shape::Sphere;
+    use crate::shape::sphere::Sphere;
 
     #[test]
     fn registry_can_store_and_retrieve_sphere() {
-        let mut registry = SphereRegistry::new();
+        let mut registry = ShapeRegistry::new();
         let sphere = Sphere::new();
         let id = sphere.id();
 
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn registry_returns_none_for_nonexistent_id() {
-        let registry = SphereRegistry::new();
+        let registry = ShapeRegistry::new();
         let result = registry.get(999);
 
         assert!(result.is_none());
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn registry_tracks_insertion_order() {
-        let mut registry = SphereRegistry::new();
+        let mut registry = ShapeRegistry::new();
         let sphere1 = Sphere::new();
         let sphere2 = Sphere::new();
         let id1 = sphere1.id();
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn registry_find_sphere_works() {
-        let mut registry = SphereRegistry::new();
+        let mut registry = ShapeRegistry::new();
         let mut sphere = Sphere::new();
         sphere.set_material(crate::materials::Material {
             ambient: 0.5,
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn registry_iterator_works() {
-        let mut registry = SphereRegistry::new();
+        let mut registry = ShapeRegistry::new();
         let sphere1 = Sphere::new();
         let sphere2 = Sphere::new();
         let id1 = sphere1.id();
