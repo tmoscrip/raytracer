@@ -7,14 +7,14 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct Intersection {
     pub t: f64,
-    pub sphere_id: u32,
+    pub object_id: u32,
 }
 
 impl Intersection {
-    pub fn new(t: f64, sphere: &Sphere) -> Self {
+    pub fn new(t: f64, object: &dyn Shape) -> Self {
         Intersection {
             t,
-            sphere_id: sphere.data.id,
+            object_id: object.data().id,
         }
     }
 }
@@ -40,7 +40,7 @@ pub fn prepare_computations<'a>(
     ray: &Ray,
     registry: &'a crate::sphere_registry::SphereRegistry,
 ) -> Option<PreComputedData<'a>> {
-    let sphere = registry.get(intersection.sphere_id)?;
+    let sphere = registry.get(intersection.object_id)?;
     let point = ray.position(intersection.t);
     let eyev = -(ray.direction);
     let mut normalv = sphere.normal_at(&point);
@@ -76,7 +76,7 @@ mod tests {
         let i = Intersection::new(3.5, &s);
 
         assert_eq!(i.t, 3.5);
-        assert_eq!(i.sphere_id, s.data.id);
+        assert_eq!(i.object_id, s.data.id);
     }
 
     #[test]
@@ -101,8 +101,8 @@ mod tests {
         let xs = s.intersect(&r);
 
         assert_eq!(xs.len(), 2);
-        assert_eq!(xs[0].sphere_id, s.data.id);
-        assert_eq!(xs[1].sphere_id, s.data.id);
+        assert_eq!(xs[0].object_id, s.data.id);
+        assert_eq!(xs[1].object_id, s.data.id);
     }
 
     #[test]
@@ -167,7 +167,7 @@ mod tests {
         let comps = prepare_computations(&i, &r, &registry).unwrap();
 
         assert_eq!(comps.t, i.t);
-        assert_eq!(comps.object.id(), i.sphere_id);
+        assert_eq!(comps.object.id(), i.object_id);
         assert_eq!(comps.point, crate::tuple::Tuple::point(0.0, 0.0, -1.0));
         assert_eq!(comps.eyev, crate::tuple::Tuple::vector(0.0, 0.0, -1.0));
         assert_eq!(comps.normalv, crate::tuple::Tuple::vector(0.0, 0.0, -1.0));

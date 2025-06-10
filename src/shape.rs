@@ -136,8 +136,8 @@ mod tests {
         let xs = s.intersect(&r);
 
         assert_eq!(xs.len(), 2);
-        assert_eq!(xs[0].sphere_id, s.data.id);
-        assert_eq!(xs[1].sphere_id, s.data.id);
+        assert_eq!(xs[0].object_id, s.data.id);
+        assert_eq!(xs[1].object_id, s.data.id);
     }
 
     #[test]

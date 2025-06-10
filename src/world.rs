@@ -270,7 +270,7 @@ mod tests {
         let shape = w.registry.get_by_index(0).unwrap(); // first object in w
         let i = crate::intersection::Intersection {
             t: 4.0,
-            sphere_id: shape.id(),
+            object_id: shape.id(),
         };
 
         let comps = crate::intersection::prepare_computations(&i, &r, &w.registry).unwrap();
@@ -290,7 +290,7 @@ mod tests {
         let shape = w.registry.get_by_index(1).unwrap(); // second object in w
         let i = crate::intersection::Intersection {
             t: 0.5,
-            sphere_id: shape.id(),
+            object_id: shape.id(),
         };
 
         let comps = crate::intersection::prepare_computations(&i, &r, &w.registry).unwrap();
@@ -403,7 +403,7 @@ mod tests {
         let r = Ray::new(Tuple::point(0.0, 0.0, 5.0), Tuple::vector(0.0, 0.0, 1.0));
         let i = Intersection {
             t: 4.0,
-            sphere_id: s2_id,
+            object_id: s2_id,
         };
 
         let comps = prepare_computations(&i, &r, &w.registry).unwrap();
