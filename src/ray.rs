@@ -76,7 +76,7 @@ mod tests {
     #[test]
     fn sphere_default_transformation() {
         use crate::matrix::Matrix;
-        use crate::sphere::Sphere;
+        use crate::shape::Sphere;
 
         let s = Sphere::new();
         assert_eq!(s.transform, Matrix::identity());
@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn changing_sphere_transformation() {
         use crate::matrix::Matrix;
-        use crate::sphere::Sphere;
+        use crate::shape::Sphere;
 
         let mut s = Sphere::new();
         let t = Matrix::translation(2.0, 3.0, 4.0);

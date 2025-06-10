@@ -4,7 +4,7 @@ use crate::{
     light::Light,
     materials::lighting,
     ray::Ray,
-    sphere::{intersect, Sphere},
+    shape::{intersect, Sphere},
     sphere_registry::SphereRegistry,
     tuple::Tuple,
 };
@@ -30,7 +30,7 @@ impl World {
         use crate::{colour::Colour, matrix::Matrix, tuple::Tuple};
 
         // Reset sphere counter to ensure consistent IDs
-        crate::sphere::reset_sphere_counter();
+        crate::shape::reset_sphere_counter();
 
         // Create default light
         let light_position = Tuple::point(-10.0, 10.0, -10.0);
@@ -63,7 +63,7 @@ impl World {
         use std::f64::consts::PI;
 
         // Reset sphere counter to ensure consistent IDs
-        crate::sphere::reset_sphere_counter();
+        crate::shape::reset_sphere_counter();
 
         // Create light source
         let light_position = Tuple::point(-10.0, 10.0, -10.0);

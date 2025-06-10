@@ -1,4 +1,4 @@
-use crate::sphere::Sphere;
+use crate::shape::Sphere;
 use std::collections::HashMap;
 
 pub struct SphereRegistry {

@@ -1,6 +1,6 @@
 use crate::{
     ray::Ray,
-    sphere::{normal_at, Sphere},
+    shape::{normal_at, Sphere},
     tuple::Tuple,
 };
 
@@ -68,7 +68,7 @@ pub fn prepare_computations(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sphere::Sphere;
+    use crate::shape::Sphere;
 
     #[test]
     fn intersection_encapsulates_t_and_object() {
@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn intersect_sets_object_on_intersection() {
         use crate::ray::Ray;
-        use crate::sphere::intersect;
+        use crate::shape::intersect;
         use crate::tuple::Tuple;
 
         let r = Ray::new(Tuple::point(0.0, 0.0, -5.0), Tuple::vector(0.0, 0.0, 1.0));
