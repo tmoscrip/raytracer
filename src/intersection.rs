@@ -14,7 +14,7 @@ impl Intersection {
     pub fn new(t: f64, sphere: &Sphere) -> Self {
         Intersection {
             t,
-            sphere_id: sphere.id,
+            sphere_id: sphere.data.id,
         }
     }
 }
@@ -76,7 +76,7 @@ mod tests {
         let i = Intersection::new(3.5, &s);
 
         assert_eq!(i.t, 3.5);
-        assert_eq!(i.sphere_id, s.id);
+        assert_eq!(i.sphere_id, s.data.id);
     }
 
     #[test]
@@ -101,8 +101,8 @@ mod tests {
         let xs = s.intersect(&r);
 
         assert_eq!(xs.len(), 2);
-        assert_eq!(xs[0].sphere_id, s.id);
-        assert_eq!(xs[1].sphere_id, s.id);
+        assert_eq!(xs[0].sphere_id, s.data.id);
+        assert_eq!(xs[1].sphere_id, s.data.id);
     }
 
     #[test]

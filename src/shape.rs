@@ -10,48 +10,97 @@ pub fn reset_sphere_counter() {
     SPHERE_ID_COUNTER.store(0, Ordering::Relaxed);
 }
 
+#[derive(Clone)]
+pub struct ShapeData {
+    pub id: u32,
+    pub transform: Matrix,
+    pub inverse_transform: Matrix,
+    pub material: Material,
+    // Optionally, add saved_ray for testing
+    // pub saved_ray: Option<Ray>,
+}
+
 pub trait Shape {
+    fn data(&self) -> &ShapeData;
+
     fn id(&self) -> u32;
     fn transform(&self) -> &Matrix;
     fn inverse_transform(&self) -> &Matrix;
     fn set_transform(&mut self, transform: Matrix);
     fn material(&self) -> &Material;
     fn set_material(&mut self, material: Material);
-    fn intersect(&self, ray: &Ray) -> Vec<Intersection>;
-    fn normal_at(&self, world_point: &Tuple) -> Tuple;
+
+    fn intersect(&self, ray: &Ray) -> Vec<Intersection> {
+        let local_ray = ray.clone().transform(&self.data().inverse_transform);
+        // self.data_mut().saved_ray = Some(local_ray.clone()); // for testing
+        self.local_intersect(&local_ray)
+    }
+
+    fn normal_at(&self, world_point: &Tuple) -> Tuple {
+        let object_point = self.data().inverse_transform.clone() * world_point.clone();
+        let object_normal = self.local_normal_at(&object_point);
+        let world_normal = self.data().inverse_transform.transpose() * object_normal;
+        Tuple::vector(world_normal.x, world_normal.y, world_normal.z).normalise()
+    }
+
+    // Abstract methods
+    fn local_intersect(&self, local_ray: &Ray) -> Vec<Intersection>;
+    fn local_normal_at(&self, local_point: &Tuple) -> Tuple;
+}
+
+#[derive(Clone)]
+pub struct Sphere {
+    pub data: ShapeData,
+}
+
+impl Sphere {
+    pub fn new() -> Sphere {
+        let identity = Matrix::identity();
+        Sphere {
+            data: ShapeData {
+                id: SPHERE_ID_COUNTER.fetch_add(1, Ordering::Relaxed),
+                transform: identity.clone(),
+                inverse_transform: identity.inverse(),
+                material: Material::new(),
+            },
+        }
+    }
 }
 
 impl Shape for Sphere {
     fn id(&self) -> u32 {
-        self.id
+        self.data.id
+    }
+
+    fn data(&self) -> &ShapeData {
+        &self.data
     }
 
     fn transform(&self) -> &Matrix {
-        &self.transform
+        &self.data.transform
     }
 
     fn inverse_transform(&self) -> &Matrix {
-        &self.inverse_transform
+        &self.data.inverse_transform
     }
 
     fn set_transform(&mut self, transform: Matrix) {
-        self.inverse_transform = transform.inverse();
-        self.transform = transform;
+        self.data.inverse_transform = transform.inverse();
+        self.data.transform = transform;
     }
 
     fn material(&self) -> &Material {
-        &self.material
+        &self.data.material
     }
 
     fn set_material(&mut self, material: Material) {
-        self.material = material;
+        self.data.material = material;
     }
 
-    fn intersect(&self, ray: &Ray) -> Vec<Intersection> {
-        let transformed_ray = ray.clone().transform(&self.inverse_transform);
-        let sphere_to_ray = transformed_ray.origin - Tuple::point(0.0, 0.0, 0.0);
-        let a = transformed_ray.direction.dot(&transformed_ray.direction);
-        let b = 2.0 * transformed_ray.direction.dot(&sphere_to_ray);
+    fn local_intersect(&self, ray: &Ray) -> Vec<Intersection> {
+        let sphere_to_ray = ray.origin - Tuple::point(0.0, 0.0, 0.0);
+        let a = ray.direction.dot(&ray.direction);
+        let b = 2.0 * ray.direction.dot(&sphere_to_ray);
         let c = sphere_to_ray.dot(&sphere_to_ray) - 1.0;
 
         let discriminant = b * b - 4.0 * a * c;
@@ -67,35 +116,8 @@ impl Shape for Sphere {
         }
     }
 
-    fn normal_at(&self, world_point: &Tuple) -> Tuple {
-        let object_point = self.inverse_transform.clone() * world_point.clone();
-
-        let object_normal = object_point - Tuple::point(0.0, 0.0, 0.0);
-
-        let world_normal = self.inverse_transform.transpose() * object_normal;
-
-        let result = Tuple::vector(world_normal.x, world_normal.y, world_normal.z);
-        result.normalise()
-    }
-}
-
-#[derive(Clone)]
-pub struct Sphere {
-    pub id: u32,
-    pub transform: Matrix,
-    pub inverse_transform: Matrix,
-    pub material: Material,
-}
-
-impl Sphere {
-    pub fn new() -> Sphere {
-        let identity = Matrix::identity();
-        Sphere {
-            id: SPHERE_ID_COUNTER.fetch_add(1, Ordering::Relaxed),
-            transform: identity.clone(),
-            inverse_transform: identity.inverse(),
-            material: Material::new(),
-        }
+    fn local_normal_at(&self, local_point: &Tuple) -> Tuple {
+        local_point.clone() - Tuple::point(0.0, 0.0, 0.0)
     }
 }
 
@@ -114,8 +136,8 @@ mod tests {
         let xs = s.intersect(&r);
 
         assert_eq!(xs.len(), 2);
-        assert_eq!(xs[0].sphere_id, s.id);
-        assert_eq!(xs[1].sphere_id, s.id);
+        assert_eq!(xs[0].sphere_id, s.data.id);
+        assert_eq!(xs[1].sphere_id, s.data.id);
     }
 
     #[test]
@@ -247,7 +269,7 @@ mod tests {
     #[test]
     fn sphere_has_default_material() {
         let s = Sphere::new();
-        let m = s.material;
+        let m = s.data.material;
         let default = Material::new();
 
         assert_eq!(m.colour, default.colour);

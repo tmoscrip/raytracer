@@ -79,7 +79,7 @@ mod tests {
         use crate::shape::Sphere;
 
         let s = Sphere::new();
-        assert_eq!(s.transform, Matrix::identity());
+        assert_eq!(s.data.transform, Matrix::identity());
     }
 
     #[test]
@@ -90,6 +90,6 @@ mod tests {
         let mut s = Sphere::new();
         let t = Matrix::translation(2.0, 3.0, 4.0);
         s.set_transform(t.clone());
-        assert_eq!(s.transform, t);
+        assert_eq!(s.data.transform, t);
     }
 }
