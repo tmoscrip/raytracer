@@ -21,9 +21,7 @@ impl RenderContext {
         let buffer_size = (width * height * 4) as usize;
         let buffer = vec![0; buffer_size];
 
-        // Create camera with appropriate field of view
         let mut camera = Camera::new(width as usize, height as usize, std::f64::consts::PI / 3.0);
-        // Set up camera transformation using view_transform
         let from = Tuple::point(0.0, 1.5, -5.0);
         let to = Tuple::point(0.0, 1.0, 0.0);
         let up = Tuple::vector(0.0, 1.0, 0.0);
@@ -43,14 +41,11 @@ impl RenderContext {
     }
 
     pub fn render(&mut self, _dt: f32) {
-        // Clear the color buffer
         for color in &mut self.colours {
             *color = Colour::new(0.0, 0.0, 0.0);
         }
 
-        // Use camera to render directly to our internal buffer
         self.camera.render_to_buffer(&self.world, &mut self.colours);
-
         self.update_buffer_from_colours();
     }
 
@@ -66,13 +61,11 @@ impl RenderContext {
         self.height
     }
 
-    // Helper method to convert colours to buffer
     fn update_buffer_from_colours(&mut self) {
         // Process pixels in chunks for better cache locality
         for (i, &colour) in self.colours.iter().enumerate() {
             let buffer_index = i * 4;
 
-            // Clamp colour values to [0, 1] and convert to [0, 255]
             self.buffer[buffer_index] = (colour.r.clamp(0.0, 1.0) * 255.0) as u8; // R
             self.buffer[buffer_index + 1] = (colour.g.clamp(0.0, 1.0) * 255.0) as u8; // G
             self.buffer[buffer_index + 2] = (colour.b.clamp(0.0, 1.0) * 255.0) as u8; // B
@@ -80,7 +73,7 @@ impl RenderContext {
         }
     }
 
-    // New method for chunked rendering - renders a specific tile
+    // Chunked rendering - renders a specific tile
     pub fn render_tile(
         &mut self,
         tile_x: u32,
@@ -101,13 +94,11 @@ impl RenderContext {
             for local_x in 0..tile_width {
                 let global_x = tile_x + local_x;
 
-                // Use camera to generate ray for this pixel
                 let ray = self
                     .camera
                     .ray_for_pixel(global_x as usize, global_y as usize);
                 let colour = self.world.colour_at(&ray);
 
-                // Write to tile buffer
                 let tile_pixel_index = (local_y * tile_width + local_x) as usize;
                 let buffer_index = tile_pixel_index * 4;
 
@@ -118,7 +109,7 @@ impl RenderContext {
                 tile_buffer[buffer_index] = r;
                 tile_buffer[buffer_index + 1] = g;
                 tile_buffer[buffer_index + 2] = b;
-                tile_buffer[buffer_index + 3] = 255; // Alpha
+                tile_buffer[buffer_index + 3] = 255;
             }
         }
 
@@ -145,12 +136,10 @@ impl RenderContext {
         );
     }
 
-    // Get pointer to the tile buffer for JavaScript access
     pub fn get_tile_buffer_pointer(&self) -> *const u8 {
         self.tile_buffer.as_ptr()
     }
 
-    // Get the size of the tile buffer
     pub fn get_tile_buffer_size(&self) -> usize {
         self.tile_buffer.len()
     }
@@ -162,7 +151,6 @@ impl RenderContext {
             let pixel_index = (y * self.width + x) as usize;
             self.colours[pixel_index] = colour;
 
-            // Update the corresponding buffer pixels
             let buffer_index = pixel_index * 4;
             let r = (colour.r.clamp(0.0, 1.0) * 255.0) as u8;
             let g = (colour.g.clamp(0.0, 1.0) * 255.0) as u8;
@@ -171,7 +159,7 @@ impl RenderContext {
             self.buffer[buffer_index] = r;
             self.buffer[buffer_index + 1] = g;
             self.buffer[buffer_index + 2] = b;
-            self.buffer[buffer_index + 3] = 255; // Alpha
+            self.buffer[buffer_index + 3] = 255;
         }
     }
 
