@@ -1,4 +1,4 @@
-use crate::{camera::Camera, colour::Colour, matrix::Matrix, tuple::Tuple, world::World};
+use crate::{camera::Camera, colour::Colour, tuple::Tuple, world::World};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

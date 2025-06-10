@@ -29,6 +29,7 @@ pub struct PreComputedData {
     pub t: f64,
     pub object: Sphere,
     pub point: Tuple,
+    pub over_point: Tuple,
     pub eyev: Tuple,
     pub normalv: Tuple,
     pub inside: bool,
@@ -56,6 +57,8 @@ pub fn prepare_computations(
         t: intersection.t,
         object: sphere.clone(),
         point: point.clone(),
+        // Epsilon is too small, resulted in artifacts. Making it 50000 times larger works.
+        over_point: point + normalv * 50000.0 * f64::EPSILON,
         eyev,
         normalv,
         inside,
@@ -209,5 +212,24 @@ mod tests {
         assert_eq!(comps.inside, true);
         // normal would have been (0, 0, 1), but is inverted!
         assert_eq!(comps.normalv, crate::tuple::Tuple::vector(0.0, 0.0, -1.0));
+    }
+
+    #[test]
+    fn hit_should_offset_the_point() {
+        let r = crate::ray::Ray::new(
+            crate::tuple::Tuple::point(0.0, 0.0, -5.0),
+            crate::tuple::Tuple::vector(0.0, 0.0, 1.0),
+        );
+        let mut shape = Sphere::new();
+        shape.set_transform(crate::matrix::Matrix::translation(0.0, 0.0, 1.0));
+        let i = Intersection::new(5.0, &shape);
+
+        let mut registry = crate::sphere_registry::SphereRegistry::new();
+        registry.register(shape);
+
+        let comps = prepare_computations(&i, &r, &registry).unwrap();
+
+        assert!(comps.over_point.z < -f64::EPSILON / 2.0);
+        assert!(comps.point.z > comps.over_point.z);
     }
 }
