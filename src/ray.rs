@@ -85,7 +85,7 @@ mod tests {
     #[test]
     fn changing_sphere_transformation() {
         use crate::matrix::Matrix;
-        use crate::shape::Sphere;
+        use crate::shape::{Shape, Sphere};
 
         let mut s = Sphere::new();
         let t = Matrix::translation(2.0, 3.0, 4.0);

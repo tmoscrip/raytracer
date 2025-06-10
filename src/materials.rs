@@ -23,6 +23,47 @@ impl Material {
             shininess: 200.0,
         }
     }
+
+    pub fn colour(&self) -> &Colour {
+        &self.colour
+    }
+
+    pub fn ambient(&self) -> f64 {
+        self.ambient
+    }
+
+    pub fn diffuse(&self) -> f64 {
+        self.diffuse
+    }
+
+    pub fn specular(&self) -> f64 {
+        self.specular
+    }
+
+    pub fn shininess(&self) -> f64 {
+        self.shininess
+    }
+
+    // Setters
+    pub fn set_colour(&mut self, colour: Colour) {
+        self.colour = colour;
+    }
+
+    pub fn set_ambient(&mut self, ambient: f64) {
+        self.ambient = ambient;
+    }
+
+    pub fn set_diffuse(&mut self, diffuse: f64) {
+        self.diffuse = diffuse;
+    }
+
+    pub fn set_specular(&mut self, specular: f64) {
+        self.specular = specular;
+    }
+
+    pub fn set_shininess(&mut self, shininess: f64) {
+        self.shininess = shininess;
+    }
 }
 
 pub fn lighting(

@@ -4,7 +4,7 @@ use crate::{
     light::Light,
     materials::lighting,
     ray::Ray,
-    shape::{intersect, Sphere},
+    shape::{Shape, Sphere},
     sphere_registry::SphereRegistry,
     tuple::Tuple,
 };
@@ -27,7 +27,7 @@ impl World {
     }
 
     pub fn default_world() -> Self {
-        use crate::{colour::Colour, matrix::Matrix, tuple::Tuple};
+        use crate::{colour::Colour, materials::Material, matrix::Matrix, tuple::Tuple};
 
         // Reset sphere counter to ensure consistent IDs
         crate::shape::reset_sphere_counter();
@@ -39,9 +39,11 @@ impl World {
 
         // Create first sphere (s1)
         let mut s1 = Sphere::new();
-        s1.material.colour = Colour::new(0.8, 1.0, 0.6);
-        s1.material.diffuse = 0.7;
-        s1.material.specular = 0.2;
+        let mut s1_material = Material::new();
+        s1_material.set_colour(Colour::new(0.8, 1.0, 0.6));
+        s1_material.diffuse = 0.7;
+        s1_material.specular = 0.2;
+        s1.set_material(s1_material);
 
         // Create second sphere (s2)
         let mut s2 = Sphere::new();
@@ -78,9 +80,10 @@ impl World {
         // 1. Floor - extremely flattened sphere with matte texture
         let mut floor = Sphere::new();
         floor.set_transform(Matrix::scaling(10.0, 0.01, 10.0));
-        floor.material = Material::new();
-        floor.material.colour = Colour::new(1.0, 0.9, 0.9);
-        floor.material.specular = 0.0;
+        let mut floor_material = Material::new();
+        floor_material.colour = Colour::new(1.0, 0.9, 0.9);
+        floor_material.specular = 0.0;
+        floor.set_material(floor_material);
         world.add_object(floor);
 
         // 2. Left wall
@@ -91,9 +94,10 @@ impl World {
                 * Matrix::rotation_x(PI / 2.0)
                 * Matrix::scaling(10.0, 0.01, 10.0),
         );
-        left_wall.material = Material::new();
-        left_wall.material.colour = Colour::new(1.0, 0.9, 0.9);
-        left_wall.material.specular = 0.0;
+        let mut left_wall_material = Material::new();
+        left_wall_material.colour = Colour::new(1.0, 0.9, 0.9);
+        left_wall_material.specular = 0.0;
+        left_wall.set_material(left_wall_material);
         world.add_object(left_wall);
 
         // 3. Right wall
@@ -104,27 +108,30 @@ impl World {
                 * Matrix::rotation_x(PI / 2.0)
                 * Matrix::scaling(10.0, 0.01, 10.0),
         );
-        right_wall.material = Material::new();
-        right_wall.material.colour = Colour::new(1.0, 0.9, 0.9);
-        right_wall.material.specular = 0.0;
+        let mut right_wall_material = Material::new();
+        right_wall_material.colour = Colour::new(1.0, 0.9, 0.9);
+        right_wall_material.specular = 0.0;
+        right_wall.set_material(right_wall_material);
         world.add_object(right_wall);
 
         // 4. Middle sphere - large green sphere
         let mut middle = Sphere::new();
         middle.set_transform(Matrix::translation(-0.5, 1.0, 0.5));
-        middle.material = Material::new();
-        middle.material.colour = Colour::new(0.1, 1.0, 0.5);
-        middle.material.diffuse = 0.7;
-        middle.material.specular = 0.3;
+        let mut middle_material = Material::new();
+        middle_material.colour = Colour::new(0.1, 1.0, 0.5);
+        middle_material.diffuse = 0.7;
+        middle_material.specular = 0.3;
+        middle.set_material(middle_material);
         world.add_object(middle);
 
         // 5. Right sphere - smaller green sphere
         let mut right = Sphere::new();
         right.set_transform(Matrix::translation(1.5, 0.5, -0.5) * Matrix::scaling(0.5, 0.5, 0.5));
-        right.material = Material::new();
-        right.material.colour = Colour::new(0.5, 1.0, 0.1);
-        right.material.diffuse = 0.7;
-        right.material.specular = 0.3;
+        let mut right_material = Material::new();
+        right_material.colour = Colour::new(0.5, 1.0, 0.1);
+        right_material.diffuse = 0.7;
+        right_material.specular = 0.3;
+        right.set_material(right_material);
         world.add_object(right);
 
         // 6. Left sphere - smallest sphere
@@ -132,10 +139,11 @@ impl World {
         left.set_transform(
             Matrix::translation(-1.5, 0.33, -0.75) * Matrix::scaling(0.33, 0.33, 0.33),
         );
-        left.material = Material::new();
-        left.material.colour = Colour::new(1.0, 0.8, 0.1);
-        left.material.diffuse = 0.7;
-        left.material.specular = 0.3;
+        let mut left_material = Material::new();
+        left_material.colour = Colour::new(1.0, 0.8, 0.1);
+        left_material.diffuse = 0.7;
+        left_material.specular = 0.3;
+        left.set_material(left_material);
         world.add_object(left);
 
         world
@@ -144,7 +152,7 @@ impl World {
     pub fn intersect_world(&self, ray: &Ray) -> Vec<Intersection> {
         let mut intersections = Vec::new();
         for sphere in self.registry.iter() {
-            let mut object_intersections = intersect(sphere, ray);
+            let mut object_intersections = sphere.intersect(ray);
             intersections.append(&mut object_intersections);
         }
 
@@ -156,7 +164,7 @@ impl World {
         let shadowed = self.is_shadowed(comps.over_point);
         match self.light.clone() {
             Some(light) => lighting(
-                comps.object.material.clone(),
+                comps.object.material().clone(),
                 light,
                 comps.point.clone(),
                 comps.eyev.clone(),
@@ -229,13 +237,16 @@ mod tests {
 
         // Check first sphere (s1) - by insertion order
         let s1 = world.registry.get_by_index(0).unwrap();
-        assert_eq!(s1.material.colour, Colour::new(0.8, 1.0, 0.6));
-        assert_eq!(s1.material.diffuse, 0.7);
-        assert_eq!(s1.material.specular, 0.2);
+        assert_eq!(s1.material().colour, Colour::new(0.8, 1.0, 0.6));
+        assert_eq!(s1.material().diffuse, 0.7);
+        assert_eq!(s1.material().specular, 0.2);
 
         // Check second sphere (s2) - by insertion order
         let s2 = world.registry.get_by_index(1).unwrap();
-        assert_eq!(s2.transform, crate::matrix::Matrix::scaling(0.5, 0.5, 0.5));
+        assert_eq!(
+            *s2.transform(),
+            crate::matrix::Matrix::scaling(0.5, 0.5, 0.5)
+        );
     }
 
     #[test]
@@ -257,7 +268,10 @@ mod tests {
         let w = World::default_world();
         let r = Ray::new(Tuple::point(0.0, 0.0, -5.0), Tuple::vector(0.0, 0.0, 1.0));
         let shape = w.registry.get_by_index(0).unwrap(); // first object in w
-        let i = crate::intersection::Intersection::new(4.0, shape);
+        let i = crate::intersection::Intersection {
+            t: 4.0,
+            sphere_id: shape.id(),
+        };
 
         let comps = crate::intersection::prepare_computations(&i, &r, &w.registry).unwrap();
         let c = w.shade_hit(&comps);
@@ -274,7 +288,10 @@ mod tests {
         ));
         let r = Ray::new(Tuple::point(0.0, 0.0, 0.0), Tuple::vector(0.0, 0.0, 1.0));
         let shape = w.registry.get_by_index(1).unwrap(); // second object in w
-        let i = crate::intersection::Intersection::new(0.5, shape);
+        let i = crate::intersection::Intersection {
+            t: 0.5,
+            sphere_id: shape.id(),
+        };
 
         let comps = crate::intersection::prepare_computations(&i, &r, &w.registry).unwrap();
         let c = w.shade_hit(&comps);
@@ -312,14 +329,18 @@ mod tests {
 
         // Create spheres with ambient = 1.0
         let mut s1 = Sphere::new();
-        s1.material.colour = Colour::new(0.8, 1.0, 0.6);
-        s1.material.diffuse = 0.7;
-        s1.material.specular = 0.2;
-        s1.material.ambient = 1.0;
+        let mut s1_material = crate::materials::Material::new();
+        s1_material.colour = Colour::new(0.8, 1.0, 0.6);
+        s1_material.diffuse = 0.7;
+        s1_material.specular = 0.2;
+        s1_material.ambient = 1.0;
+        s1.set_material(s1_material);
 
         let mut s2 = Sphere::new();
         s2.set_transform(crate::matrix::Matrix::scaling(0.5, 0.5, 0.5));
-        s2.material.ambient = 1.0;
+        let mut s2_material = crate::materials::Material::new();
+        s2_material.ambient = 1.0;
+        s2.set_material(s2_material);
 
         w.add_object(s1);
         w.add_object(s2);
@@ -328,7 +349,7 @@ mod tests {
         let c = w.colour_at(&r);
 
         // The color should be the inner object's material color
-        let inner_color = w.registry.get_by_index(1).unwrap().material.colour;
+        let inner_color = w.registry.get_by_index(1).unwrap().material().colour;
         assert_eq!(c, inner_color);
     }
 
@@ -380,7 +401,10 @@ mod tests {
         let s2_id = w.add_object(s2.clone());
 
         let r = Ray::new(Tuple::point(0.0, 0.0, 5.0), Tuple::vector(0.0, 0.0, 1.0));
-        let i = Intersection::new(4.0, &s2);
+        let i = Intersection {
+            t: 4.0,
+            sphere_id: s2_id,
+        };
 
         let comps = prepare_computations(&i, &r, &w.registry).unwrap();
         let c = w.shade_hit(&comps);

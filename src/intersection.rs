@@ -1,6 +1,6 @@
 use crate::{
     ray::Ray,
-    shape::{normal_at, Sphere},
+    shape::{Shape, Sphere},
     tuple::Tuple,
 };
 
@@ -25,9 +25,9 @@ pub fn hit(xs: &[Intersection]) -> Option<&Intersection> {
         .min_by(|a, b| a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal))
 }
 
-pub struct PreComputedData {
+pub struct PreComputedData<'a> {
     pub t: f64,
-    pub object: Sphere,
+    pub object: &'a dyn Shape,
     pub point: Tuple,
     pub over_point: Tuple,
     pub eyev: Tuple,
@@ -35,15 +35,15 @@ pub struct PreComputedData {
     pub inside: bool,
 }
 
-pub fn prepare_computations(
+pub fn prepare_computations<'a>(
     intersection: &Intersection,
     ray: &Ray,
-    registry: &crate::sphere_registry::SphereRegistry,
-) -> Option<PreComputedData> {
+    registry: &'a crate::sphere_registry::SphereRegistry,
+) -> Option<PreComputedData<'a>> {
     let sphere = registry.get(intersection.sphere_id)?;
     let point = ray.position(intersection.t);
     let eyev = -(ray.direction);
-    let mut normalv = normal_at(sphere, &point);
+    let mut normalv = sphere.normal_at(&point);
 
     let inside: bool;
     if normalv.clone().dot(&eyev) < 0.0 {
@@ -55,7 +55,7 @@ pub fn prepare_computations(
 
     Some(PreComputedData {
         t: intersection.t,
-        object: sphere.clone(),
+        object: sphere,
         point: point.clone(),
         // Epsilon is too small, resulted in artifacts. Making it 50000 times larger works.
         over_point: point + normalv * 50000.0 * f64::EPSILON,
@@ -94,12 +94,11 @@ mod tests {
     #[test]
     fn intersect_sets_object_on_intersection() {
         use crate::ray::Ray;
-        use crate::shape::intersect;
         use crate::tuple::Tuple;
 
         let r = Ray::new(Tuple::point(0.0, 0.0, -5.0), Tuple::vector(0.0, 0.0, 1.0));
         let s = Sphere::new();
-        let xs = intersect(&s, &r);
+        let xs = s.intersect(&r);
 
         assert_eq!(xs.len(), 2);
         assert_eq!(xs[0].sphere_id, s.id);
@@ -168,7 +167,7 @@ mod tests {
         let comps = prepare_computations(&i, &r, &registry).unwrap();
 
         assert_eq!(comps.t, i.t);
-        assert_eq!(comps.object.id, i.sphere_id);
+        assert_eq!(comps.object.id(), i.sphere_id);
         assert_eq!(comps.point, crate::tuple::Tuple::point(0.0, 0.0, -1.0));
         assert_eq!(comps.eyev, crate::tuple::Tuple::vector(0.0, 0.0, -1.0));
         assert_eq!(comps.normalv, crate::tuple::Tuple::vector(0.0, 0.0, -1.0));
