@@ -32,7 +32,7 @@ impl RenderContext {
             height,
             colours,
             buffer,
-            world: World::test_world(),
+            world: World::third_world(),
             camera,
             tile_buffer: Vec::new(),
         };

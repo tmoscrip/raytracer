@@ -4,7 +4,7 @@ use crate::{
     light::Light,
     materials::lighting,
     ray::Ray,
-    shape::{sphere::Sphere, Shape},
+    shape::{plane::Plane, sphere::Sphere, Shape},
     sphere_registry::ShapeRegistry,
     tuple::Tuple,
 };
@@ -139,6 +139,83 @@ impl World {
         left_material.specular = 0.3;
         left.set_material(left_material);
         world.add_object(left);
+
+        world
+    }
+
+    pub fn third_world() -> Self {
+        use crate::{colour::Colour, materials::Material, matrix::Matrix, tuple::Tuple};
+        use std::f64::consts::PI;
+
+        // Create light source positioned above and to the left
+        let light_position = Tuple::point(-10.0, 5.0, -10.0);
+        let light_intensity = Colour::new(1.0, 1.0, 1.0);
+        let light = Light::point_light(light_position, light_intensity);
+
+        let mut world = World {
+            registry: ShapeRegistry::new(),
+            light: Some(light),
+        };
+
+        // 1. Floor - a plane at y=0 with a matte finish
+        let mut floor = Plane::new();
+        let mut floor_material = Material::new();
+        floor_material.colour = Colour::new(1.0, 0.9, 0.9);
+        floor_material.specular = 0.0; // Matte finish
+        floor.set_material(floor_material);
+        world.add_object(floor);
+
+        // 2. Wall as backdrop - plane rotated π/2 around x-axis and translated in z
+        let mut wall = Plane::new();
+        wall.set_transform(Matrix::translation(0.0, 0.0, 5.0) * Matrix::rotation_x(PI / 2.0));
+        let mut wall_material = Material::new();
+        wall_material.colour = Colour::new(1.0, 0.9, 0.9);
+        wall_material.specular = 0.0;
+        wall.set_material(wall_material);
+        world.add_object(wall);
+
+        // 3. Large middle sphere sitting on the floor
+        let mut middle = Sphere::new();
+        middle.set_transform(Matrix::translation(-0.5, 1.0, 0.5));
+        let mut middle_material = Material::new();
+        middle_material.colour = Colour::new(0.1, 1.0, 0.5);
+        middle_material.diffuse = 0.7;
+        middle_material.specular = 0.3;
+        middle.set_material(middle_material);
+        world.add_object(middle);
+
+        // 4. Right sphere - smaller sphere on the floor
+        let mut right = Sphere::new();
+        right.set_transform(Matrix::translation(1.5, 0.5, -0.5) * Matrix::scaling(0.5, 0.5, 0.5));
+        let mut right_material = Material::new();
+        right_material.colour = Colour::new(0.5, 1.0, 0.1);
+        right_material.diffuse = 0.7;
+        right_material.specular = 0.3;
+        right.set_material(right_material);
+        world.add_object(right);
+
+        // 5. Left sphere - smallest sphere on the floor
+        let mut left = Sphere::new();
+        left.set_transform(
+            Matrix::translation(-1.5, 0.33, -0.75) * Matrix::scaling(0.33, 0.33, 0.33),
+        );
+        let mut left_material = Material::new();
+        left_material.colour = Colour::new(1.0, 0.8, 0.1);
+        left_material.diffuse = 0.7;
+        left_material.specular = 0.3;
+        left.set_material(left_material);
+        world.add_object(left);
+
+        // 6. Partially embedded sphere - sphere that intersects with the floor
+        let mut embedded = Sphere::new();
+        embedded
+            .set_transform(Matrix::translation(1.0, -0.2, -1.0) * Matrix::scaling(0.6, 0.6, 0.6));
+        let mut embedded_material = Material::new();
+        embedded_material.colour = Colour::new(0.8, 0.2, 0.8);
+        embedded_material.diffuse = 0.7;
+        embedded_material.specular = 0.3;
+        embedded.set_material(embedded_material);
+        world.add_object(embedded);
 
         world
     }
