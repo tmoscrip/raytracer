@@ -29,9 +29,6 @@ impl World {
     pub fn default_world() -> Self {
         use crate::{colour::Colour, materials::Material, matrix::Matrix, tuple::Tuple};
 
-        // Reset sphere counter to ensure consistent IDs
-        crate::shape::sphere::reset_sphere_counter();
-
         // Create default light
         let light_position = Tuple::point(-10.0, 10.0, -10.0);
         let light_intensity = Colour::new(1.0, 1.0, 1.0);
@@ -63,9 +60,6 @@ impl World {
     pub fn test_world() -> Self {
         use crate::{colour::Colour, materials::Material, matrix::Matrix, tuple::Tuple};
         use std::f64::consts::PI;
-
-        // Reset sphere counter to ensure consistent IDs
-        crate::shape::sphere::reset_sphere_counter();
 
         // Create light source
         let light_position = Tuple::point(-10.0, 10.0, -10.0);

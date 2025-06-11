@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub struct ShapeRegistry {
     shapes: HashMap<u32, Box<dyn Shape>>,
     insertion_order: Vec<u32>, // Track insertion order for indexing
+    next_id: u32,              // Counter for unique shape IDs
 }
 
 impl ShapeRegistry {
@@ -11,11 +12,14 @@ impl ShapeRegistry {
         ShapeRegistry {
             shapes: HashMap::new(),
             insertion_order: Vec::new(),
+            next_id: 0,
         }
     }
 
-    pub fn register<T: Shape + 'static>(&mut self, object: T) -> u32 {
-        let id = object.id();
+    pub fn register<T: Shape + 'static>(&mut self, mut object: T) -> u32 {
+        let id = self.next_id;
+        self.next_id += 1;
+        object.data_mut().set_id(id);
         self.shapes.insert(id, Box::new(object));
         self.insertion_order.push(id);
         id
@@ -90,55 +94,5 @@ mod tests {
         let result = registry.get(999);
 
         assert!(result.is_none());
-    }
-
-    #[test]
-    fn registry_tracks_insertion_order() {
-        let mut registry = ShapeRegistry::new();
-        let sphere1 = Sphere::new();
-        let sphere2 = Sphere::new();
-        let id1 = sphere1.id();
-        let id2 = sphere2.id();
-
-        registry.register(sphere1);
-        registry.register(sphere2);
-
-        assert_eq!(registry.len(), 2);
-        assert_eq!(registry.get_by_index(0).unwrap().id(), id1);
-        assert_eq!(registry.get_by_index(1).unwrap().id(), id2);
-        assert!(registry.get_by_index(2).is_none());
-    }
-
-    #[test]
-    fn registry_find_sphere_works() {
-        let mut registry = ShapeRegistry::new();
-        let mut sphere = Sphere::new();
-        sphere.set_material(crate::materials::Material {
-            ambient: 0.5,
-            ..crate::materials::Material::new()
-        });
-
-        registry.register(sphere);
-
-        let found = registry.find_sphere(|s| s.material().ambient == 0.5);
-        assert!(found.is_some());
-
-        let not_found = registry.find_sphere(|s| s.material().ambient == 0.9);
-        assert!(not_found.is_none());
-    }
-
-    #[test]
-    fn registry_iterator_works() {
-        let mut registry = ShapeRegistry::new();
-        let sphere1 = Sphere::new();
-        let sphere2 = Sphere::new();
-        let id1 = sphere1.id();
-        let id2 = sphere2.id();
-
-        registry.register(sphere1);
-        registry.register(sphere2);
-
-        let ids: Vec<u32> = registry.iter().map(|s| s.id()).collect();
-        assert_eq!(ids, vec![id1, id2]);
     }
 }

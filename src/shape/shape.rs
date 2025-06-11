@@ -13,6 +13,12 @@ pub struct ShapeData {
     // pub saved_ray: Option<Ray>,
 }
 
+impl ShapeData {
+    pub fn set_id(&mut self, id: u32) {
+        self.id = id;
+    }
+}
+
 pub trait Shape {
     fn id(&self) -> u32 {
         self.data().id

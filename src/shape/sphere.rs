@@ -1,5 +1,3 @@
-use std::sync::atomic::{AtomicU32, Ordering};
-
 use crate::{
     intersection::Intersection,
     materials::Material,
@@ -8,12 +6,6 @@ use crate::{
     shape::{Shape, ShapeData},
     tuple::Tuple,
 };
-
-static SPHERE_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
-
-pub fn reset_sphere_counter() {
-    SPHERE_ID_COUNTER.store(0, Ordering::Relaxed);
-}
 
 #[derive(Clone)]
 pub struct Sphere {
@@ -25,7 +17,7 @@ impl Sphere {
         let identity = Matrix::identity();
         Sphere {
             data: ShapeData {
-                id: SPHERE_ID_COUNTER.fetch_add(1, Ordering::Relaxed),
+                id: 0, // Temporary, will be set by registry
                 transform: identity.clone(),
                 inverse_transform: identity.inverse(),
                 material: Material::new(),
