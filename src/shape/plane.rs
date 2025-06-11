@@ -1,5 +1,5 @@
 use crate::{
-    intersection::{self, Intersection},
+    intersection::Intersection,
     materials::Material,
     matrix::Matrix,
     ray::Ray,

@@ -182,7 +182,10 @@ impl World {
         middle_material.colour = Colour::new(0.1, 1.0, 0.5);
         middle_material.diffuse = 0.7;
         middle_material.specular = 0.3;
-        middle_material.set_pattern(Some(StripePattern::new(Colour::black(), Colour::white())));
+        let mut pattern = StripePattern::new(Colour::new(0.1, 0.3, 0.9), Colour::white());
+        let pattern_transform = Matrix::scaling(0.2, 0.2, 0.2) * Matrix::rotation_y(PI / 6.0);
+        pattern.set_pattern_transform(pattern_transform);
+        middle_material.set_pattern(Some(pattern));
         middle.set_material(middle_material);
         world.add_object(middle);
 
@@ -238,6 +241,7 @@ impl World {
         match self.light.clone() {
             Some(light) => lighting(
                 comps.object.material().clone(),
+                &Sphere::new(),
                 light,
                 comps.point.clone(),
                 comps.eyev.clone(),
