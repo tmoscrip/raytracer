@@ -14,14 +14,30 @@ pub struct ShapeData {
 }
 
 pub trait Shape {
-    fn data(&self) -> &ShapeData;
+    fn id(&self) -> u32 {
+        self.data().id
+    }
 
-    fn id(&self) -> u32;
-    fn transform(&self) -> &Matrix;
-    fn inverse_transform(&self) -> &Matrix;
-    fn set_transform(&mut self, transform: Matrix);
-    fn material(&self) -> &Material;
-    fn set_material(&mut self, material: Material);
+    fn transform(&self) -> &Matrix {
+        &self.data().transform
+    }
+
+    fn inverse_transform(&self) -> &Matrix {
+        &self.data().inverse_transform
+    }
+
+    fn material(&self) -> &Material {
+        &self.data().material
+    }
+
+    fn set_transform(&mut self, transform: Matrix) {
+        self.data_mut().inverse_transform = transform.inverse();
+        self.data_mut().transform = transform;
+    }
+
+    fn set_material(&mut self, material: Material) {
+        self.data_mut().material = material;
+    }
 
     fn intersect(&self, ray: &Ray) -> Vec<Intersection> {
         let local_ray = ray.clone().transform(&self.data().inverse_transform);
@@ -37,6 +53,8 @@ pub trait Shape {
     }
 
     // Abstract methods
+    fn data(&self) -> &ShapeData;
+    fn data_mut(&mut self) -> &mut ShapeData;
     fn local_intersect(&self, local_ray: &Ray) -> Vec<Intersection>;
     fn local_normal_at(&self, local_point: &Tuple) -> Tuple;
 }

@@ -35,33 +35,12 @@ impl Sphere {
 }
 
 impl Shape for Sphere {
-    fn id(&self) -> u32 {
-        self.data.id
-    }
-
     fn data(&self) -> &ShapeData {
         &self.data
     }
 
-    fn transform(&self) -> &Matrix {
-        &self.data.transform
-    }
-
-    fn inverse_transform(&self) -> &Matrix {
-        &self.data.inverse_transform
-    }
-
-    fn set_transform(&mut self, transform: Matrix) {
-        self.data.inverse_transform = transform.inverse();
-        self.data.transform = transform;
-    }
-
-    fn material(&self) -> &Material {
-        &self.data.material
-    }
-
-    fn set_material(&mut self, material: Material) {
-        self.data.material = material;
+    fn data_mut(&mut self) -> &mut ShapeData {
+        &mut self.data
     }
 
     fn local_intersect(&self, ray: &Ray) -> Vec<Intersection> {
