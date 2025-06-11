@@ -1,6 +1,7 @@
 use crate::{
     colour::Colour,
     light::Light,
+    patterns::StripePattern,
     tuple::{reflect, Tuple},
 };
 
@@ -11,6 +12,7 @@ pub struct Material {
     pub diffuse: f64,
     pub specular: f64,
     pub shininess: f64,
+    pub pattern: Option<StripePattern>,
 }
 
 impl Material {
@@ -21,6 +23,7 @@ impl Material {
             diffuse: 0.9,
             specular: 0.9,
             shininess: 200.0,
+            pattern: None,
         }
     }
 
@@ -44,6 +47,10 @@ impl Material {
         self.shininess
     }
 
+    pub fn pattern(&self) -> Option<StripePattern> {
+        self.pattern
+    }
+
     // Setters
     pub fn set_colour(&mut self, colour: Colour) {
         self.colour = colour;
@@ -64,6 +71,10 @@ impl Material {
     pub fn set_shininess(&mut self, shininess: f64) {
         self.shininess = shininess;
     }
+
+    pub fn set_pattern(&mut self, pattern: Option<StripePattern>) {
+        self.pattern = pattern;
+    }
 }
 
 pub fn lighting(
@@ -74,7 +85,12 @@ pub fn lighting(
     normalv: Tuple,
     in_shadow: bool,
 ) -> Colour {
-    let effective_colour = material.colour * light.intensity;
+    let colour = match material.pattern() {
+        Some(pattern) => pattern.stripe_at(point),
+        None => material.colour,
+    };
+
+    let effective_colour = colour * light.intensity;
     let lightv = (light.position - point).normalise();
     let ambient = effective_colour * material.ambient;
     let light_dot_normal = lightv.dot(&normalv);
@@ -209,5 +225,34 @@ mod tests {
         let result = lighting(m, light, position, eyev, normalv, in_shadow);
 
         assert_eq!(result, Colour::new(0.1, 0.1, 0.1));
+    }
+
+    #[test]
+    fn lighting_with_a_pattern_applied() {
+        let mut m = Material::new();
+        m.set_pattern(Some(StripePattern::new(
+            Colour::new(1.0, 1.0, 1.0),
+            Colour::new(0.0, 0.0, 0.0),
+        )));
+        m.set_ambient(1.0);
+        m.set_diffuse(0.0);
+        m.set_specular(0.0);
+
+        let eyev = Tuple::vector(0.0, 0.0, -1.0);
+        let normalv = Tuple::vector(0.0, 0.0, -1.0);
+        let light = Light::point_light(Tuple::point(0.0, 0.0, -10.0), Colour::new(1.0, 1.0, 1.0));
+
+        let c1 = lighting(
+            m.clone(),
+            light.clone(),
+            Tuple::point(0.9, 0.0, 0.0),
+            eyev,
+            normalv,
+            false,
+        );
+        let c2 = lighting(m, light, Tuple::point(1.1, 0.0, 0.0), eyev, normalv, false);
+
+        assert_eq!(c1, Colour::new(1.0, 1.0, 1.0));
+        assert_eq!(c2, Colour::new(0.0, 0.0, 0.0));
     }
 }

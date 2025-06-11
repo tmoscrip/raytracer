@@ -5,6 +5,7 @@ pub mod intersection;
 pub mod light;
 pub mod materials;
 pub mod matrix;
+pub mod patterns;
 pub mod projectile;
 pub mod ray;
 pub mod render_context;

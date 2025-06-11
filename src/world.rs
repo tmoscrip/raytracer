@@ -3,6 +3,7 @@ use crate::{
     intersection::{hit, prepare_computations, Intersection, PreComputedData},
     light::Light,
     materials::lighting,
+    patterns::StripePattern,
     ray::Ray,
     shape::{plane::Plane, sphere::Sphere, Shape},
     sphere_registry::ShapeRegistry,
@@ -181,6 +182,7 @@ impl World {
         middle_material.colour = Colour::new(0.1, 1.0, 0.5);
         middle_material.diffuse = 0.7;
         middle_material.specular = 0.3;
+        middle_material.set_pattern(Some(StripePattern::new(Colour::black(), Colour::white())));
         middle.set_material(middle_material);
         world.add_object(middle);
 
