@@ -1,7 +1,7 @@
 use crate::{
     colour::Colour,
     light::Light,
-    patterns::StripePattern,
+    pattern::PatternType,
     shape::Shape,
     tuple::{reflect, Tuple},
 };
@@ -13,7 +13,7 @@ pub struct Material {
     pub diffuse: f64,
     pub specular: f64,
     pub shininess: f64,
-    pub pattern: Option<StripePattern>,
+    pub pattern: Option<PatternType>,
 }
 
 impl Material {
@@ -48,8 +48,8 @@ impl Material {
         self.shininess
     }
 
-    pub fn pattern(&self) -> Option<&StripePattern> {
-        self.pattern.as_ref()
+    pub fn pattern(&self) -> Option<PatternType> {
+        self.pattern.clone()
     }
 
     // Setters
@@ -73,7 +73,7 @@ impl Material {
         self.shininess = shininess;
     }
 
-    pub fn set_pattern(&mut self, pattern: Option<StripePattern>) {
+    pub fn set_pattern(&mut self, pattern: Option<PatternType>) {
         self.pattern = pattern;
     }
 }
@@ -88,7 +88,7 @@ pub fn lighting(
     in_shadow: bool,
 ) -> Colour {
     let colour = match material.pattern() {
-        Some(pattern) => pattern.stripe_at_object(object, point),
+        Some(pattern) => pattern.pattern_at_shape(object, point),
         None => material.colour,
     };
 
@@ -120,7 +120,7 @@ pub fn lighting(
 
 #[cfg(test)]
 mod tests {
-    use crate::shape::sphere::Sphere;
+    use crate::{pattern::striped::Striped, shape::sphere::Sphere};
     use approx::assert_abs_diff_eq;
 
     use super::*;
@@ -233,10 +233,10 @@ mod tests {
     #[test]
     fn lighting_with_a_pattern_applied() {
         let mut m = Material::new();
-        m.set_pattern(Some(StripePattern::new(
+        m.set_pattern(Some(PatternType::Striped(Striped::new(
             Colour::new(1.0, 1.0, 1.0),
             Colour::new(0.0, 0.0, 0.0),
-        )));
+        ))));
         m.set_ambient(1.0);
         m.set_diffuse(0.0);
         m.set_specular(0.0);

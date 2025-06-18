@@ -2,7 +2,6 @@ use crate::{
     colour::Colour,
     matrix::Matrix,
     pattern::{Pattern, PatternData},
-    shape::Shape,
     tuple::Tuple,
 };
 
@@ -41,28 +40,12 @@ impl Striped {
             },
         }
     }
-
-    pub fn stripe_at(&self, point: Tuple) -> Colour {
-        if point.x.floor() as i32 % 2 == 0 {
-            self.data.a
-        } else {
-            self.data.b
-        }
-    }
-
-    pub fn stripe_at_object(&self, object: &dyn Shape, world_point: Tuple) -> Colour {
-        let object_point = object.data().inverse_transform.clone() * world_point;
-        let pattern_point = self.data().transform.inverse() * object_point;
-        self.stripe_at(pattern_point)
-    }
-
-    pub fn set_pattern_transform(&mut self, transform: Matrix) {
-        self.data.transform = transform
-    }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::shape::Shape;
+
     use super::*;
 
     #[test]
@@ -81,9 +64,9 @@ mod tests {
         let black = Colour::new(0.0, 0.0, 0.0);
         let pattern = Striped::new(white, black);
 
-        assert_eq!(pattern.stripe_at(Tuple::point(0.0, 0.0, 0.0)), white);
-        assert_eq!(pattern.stripe_at(Tuple::point(0.0, 1.0, 0.0)), white);
-        assert_eq!(pattern.stripe_at(Tuple::point(0.0, 2.0, 0.0)), white);
+        assert_eq!(pattern.pattern_at(Tuple::point(0.0, 0.0, 0.0)), white);
+        assert_eq!(pattern.pattern_at(Tuple::point(0.0, 1.0, 0.0)), white);
+        assert_eq!(pattern.pattern_at(Tuple::point(0.0, 2.0, 0.0)), white);
     }
 
     #[test]
@@ -92,9 +75,9 @@ mod tests {
         let black = Colour::new(0.0, 0.0, 0.0);
         let pattern = Striped::new(white, black);
 
-        assert_eq!(pattern.stripe_at(Tuple::point(0.0, 0.0, 0.0)), white);
-        assert_eq!(pattern.stripe_at(Tuple::point(0.0, 0.0, 1.0)), white);
-        assert_eq!(pattern.stripe_at(Tuple::point(0.0, 0.0, 2.0)), white);
+        assert_eq!(pattern.pattern_at(Tuple::point(0.0, 0.0, 0.0)), white);
+        assert_eq!(pattern.pattern_at(Tuple::point(0.0, 0.0, 1.0)), white);
+        assert_eq!(pattern.pattern_at(Tuple::point(0.0, 0.0, 2.0)), white);
     }
 
     #[test]
@@ -103,12 +86,12 @@ mod tests {
         let black = Colour::new(0.0, 0.0, 0.0);
         let pattern = Striped::new(white, black);
 
-        assert_eq!(pattern.stripe_at(Tuple::point(0.0, 0.0, 0.0)), white);
-        assert_eq!(pattern.stripe_at(Tuple::point(0.9, 0.0, 0.0)), white);
-        assert_eq!(pattern.stripe_at(Tuple::point(1.0, 0.0, 0.0)), black);
-        assert_eq!(pattern.stripe_at(Tuple::point(-0.1, 0.0, 0.0)), black);
-        assert_eq!(pattern.stripe_at(Tuple::point(-1.0, 0.0, 0.0)), black);
-        assert_eq!(pattern.stripe_at(Tuple::point(-1.1, 0.0, 0.0)), white);
+        assert_eq!(pattern.pattern_at(Tuple::point(0.0, 0.0, 0.0)), white);
+        assert_eq!(pattern.pattern_at(Tuple::point(0.9, 0.0, 0.0)), white);
+        assert_eq!(pattern.pattern_at(Tuple::point(1.0, 0.0, 0.0)), black);
+        assert_eq!(pattern.pattern_at(Tuple::point(-0.1, 0.0, 0.0)), black);
+        assert_eq!(pattern.pattern_at(Tuple::point(-1.0, 0.0, 0.0)), black);
+        assert_eq!(pattern.pattern_at(Tuple::point(-1.1, 0.0, 0.0)), white);
     }
 
     #[test]
@@ -122,7 +105,7 @@ mod tests {
         let black = Colour::new(0.0, 0.0, 0.0);
         let pattern = Striped::new(white, black);
 
-        let c = pattern.stripe_at_object(&object, Tuple::point(1.5, 0.0, 0.0));
+        let c = pattern.pattern_at_shape(&object, Tuple::point(1.5, 0.0, 0.0));
 
         assert_eq!(c, white);
     }
@@ -136,9 +119,9 @@ mod tests {
         let white = Colour::new(1.0, 1.0, 1.0);
         let black = Colour::new(0.0, 0.0, 0.0);
         let mut pattern = Striped::new(white, black);
-        pattern.set_pattern_transform(Matrix::scaling(2.0, 2.0, 2.0));
+        pattern.set_transform(Matrix::scaling(2.0, 2.0, 2.0));
 
-        let c = pattern.stripe_at_object(&object, Tuple::point(1.5, 0.0, 0.0));
+        let c = pattern.pattern_at_shape(&object, Tuple::point(1.5, 0.0, 0.0));
 
         assert_eq!(c, white);
     }
@@ -153,9 +136,9 @@ mod tests {
         let white = Colour::new(1.0, 1.0, 1.0);
         let black = Colour::new(0.0, 0.0, 0.0);
         let mut pattern = Striped::new(white, black);
-        pattern.set_pattern_transform(Matrix::translation(0.5, 0.0, 0.0));
+        pattern.set_transform(Matrix::translation(0.5, 0.0, 0.0));
 
-        let c = pattern.stripe_at_object(&object, Tuple::point(2.5, 0.0, 0.0));
+        let c = pattern.pattern_at_shape(&object, Tuple::point(2.5, 0.0, 0.0));
 
         assert_eq!(c, white);
     }
