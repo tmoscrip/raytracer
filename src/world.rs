@@ -3,7 +3,7 @@ use crate::{
     intersection::{hit, prepare_computations, Intersection, PreComputedData},
     light::Light,
     materials::lighting,
-    pattern::{striped::Striped, Pattern, PatternType},
+    pattern::{gradient::Gradient, striped::Striped, Pattern, PatternType},
     ray::Ray,
     shape::{plane::Plane, sphere::Sphere, Shape},
     sphere_registry::ShapeRegistry,
@@ -176,6 +176,10 @@ impl World {
         let mut wall_material = Material::new();
         wall_material.colour = Colour::new(1.0, 0.9, 0.9);
         wall_material.specular = 0.0;
+        let mut pattern = Gradient::new(Colour::new(1.0, 0.0, 0.0), Colour::new(0.0, 0.0, 1.0));
+        let pattern_transform = Matrix::scaling(7.0, 7.0, 7.0) * Matrix::rotation_z(PI / 2.0);
+        pattern.set_transform(pattern_transform);
+        wall_material.set_pattern(Some(PatternType::Gradient(pattern)));
         wall.set_material(wall_material);
         world.add_object(wall);
 
@@ -187,7 +191,9 @@ impl World {
         middle_material.diffuse = 0.7;
         middle_material.specular = 0.3;
         let mut pattern = Striped::new(Colour::new(0.1, 0.3, 0.9), Colour::white());
-        let pattern_transform = Matrix::scaling(0.2, 0.2, 0.2) * Matrix::rotation_y(PI / 6.0);
+        let pattern_transform = Matrix::scaling(0.2, 0.2, 0.2)
+            * Matrix::rotation_y(PI / 6.0)
+            * Matrix::rotation_z(PI / 3.0);
         pattern.set_transform(pattern_transform);
         middle_material.set_pattern(Some(PatternType::Striped(pattern)));
         middle.set_material(middle_material);
