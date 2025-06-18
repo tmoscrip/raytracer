@@ -1,7 +1,7 @@
 use crate::{
     colour::Colour,
     matrix::Matrix,
-    pattern::{gradient, Pattern, PatternData},
+    pattern::{Pattern, PatternData},
     tuple::Tuple,
 };
 

@@ -3,7 +3,10 @@ use crate::{
     intersection::{hit, prepare_computations, Intersection, PreComputedData},
     light::Light,
     materials::lighting,
-    pattern::{gradient::Gradient, ring::Ring, striped::Striped, Pattern, PatternType},
+    pattern::{
+        checkered::Checkered, gradient::Gradient, ring::Ring, striped::Striped, Pattern,
+        PatternType,
+    },
     ray::Ray,
     shape::{plane::Plane, sphere::Sphere, Shape},
     sphere_registry::ShapeRegistry,
@@ -206,10 +209,10 @@ impl World {
         right_material.colour = Colour::new(0.5, 1.0, 0.1);
         right_material.diffuse = 0.7;
         right_material.specular = 0.3;
-        let mut pattern = Ring::new(Colour::new(0.3, 0.7, 0.2), Colour::white());
+        let mut pattern = Checkered::new(Colour::new(0.3, 0.7, 0.2), Colour::white());
         let pattern_transform = Matrix::scaling(0.3, 0.3, 0.3);
         pattern.set_transform(pattern_transform);
-        right_material.set_pattern(Some(PatternType::Ring(pattern)));
+        right_material.set_pattern(Some(PatternType::Checkered(pattern)));
         right.set_material(right_material);
         world.add_object(right);
 

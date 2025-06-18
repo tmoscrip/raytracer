@@ -1,3 +1,4 @@
+pub mod checkered;
 pub mod gradient;
 pub mod pattern;
 pub mod ring;
@@ -5,7 +6,7 @@ pub mod striped;
 
 use crate::{
     colour::Colour,
-    pattern::{gradient::Gradient, ring::Ring, striped::Striped},
+    pattern::{checkered::Checkered, gradient::Gradient, ring::Ring, striped::Striped},
     shape::Shape,
     tuple::Tuple,
 };
@@ -17,6 +18,7 @@ pub enum PatternType {
     Striped(Striped),
     Gradient(Gradient),
     Ring(Ring),
+    Checkered(Checkered),
 }
 
 impl PatternType {
@@ -25,6 +27,7 @@ impl PatternType {
             PatternType::Striped(pattern) => pattern.pattern_at_shape(shape, world_point),
             PatternType::Gradient(pattern) => pattern.pattern_at_shape(shape, world_point),
             PatternType::Ring(pattern) => pattern.pattern_at_shape(shape, world_point),
+            PatternType::Checkered(pattern) => pattern.pattern_at_shape(shape, world_point),
         }
     }
 }
