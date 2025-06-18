@@ -90,32 +90,10 @@ fn benchmark_render_large(c: &mut Criterion) {
     save_render_to_png(&ctx, "render_200x200_sample.png");
 }
 
-fn benchmark_render_1080p(c: &mut Criterion) {
-    // let mut group = c.benchmark_group("1080p_renders");
-    // group.measurement_time(Duration::from_secs(10));
-    // group.sample_size(10);
-
-    // let mut ctx = RenderContext::new(1920, 1080);
-
-    // group.bench_function("render_1920x1080", |b| {
-    //     b.iter(|| {
-    //         ctx.render(black_box(0.016)); // 60 FPS frame time
-    //     })
-    // });
-
-    // group.finish();
-
-    // Save a sample render after benchmarking
-    let mut ctx = RenderContext::new(1920, 1080);
-    ctx.render(0.016);
-    save_render_to_png(&ctx, "render_1920x1080_sample.png");
-}
-
 criterion_group!(
     benches,
     benchmark_render_small,
     benchmark_render_medium,
     benchmark_render_large,
-    benchmark_render_1080p
 );
 criterion_main!(benches);
