@@ -3,6 +3,7 @@
     "build": "wasm-pack build --target no-modules --out-dir www/pkg",
     "start": "python3 -m http.server --directory www",
     "test": "cargo test",
-    "test:watch": "cargo watch -c -x test"
+    "test:watch": "cargo watch -c -x test",
+    "render": "cargo run --bin raytracer-cli -- --width 1280 --height 720 --fov 60"
   }
 }

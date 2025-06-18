@@ -29,3 +29,14 @@ incremental = true
 [[bench]]
 name = "raytracer_bench"
 harness = false
+
+[[bin]]
+name = "raytracer-cli"
+path = "src/bin/main.rs"
+
+[dependencies.clap]
+version = "4.0"
+features = ["derive"]
+
+[dependencies.image]
+version = "0.25"
