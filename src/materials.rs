@@ -2,6 +2,7 @@ use crate::{
     colour::Colour,
     light::Light,
     patterns::StripePattern,
+    shape::Shape,
     tuple::{reflect, Tuple},
 };
 
@@ -47,8 +48,8 @@ impl Material {
         self.shininess
     }
 
-    pub fn pattern(&self) -> Option<StripePattern> {
-        self.pattern
+    pub fn pattern(&self) -> Option<&StripePattern> {
+        self.pattern.as_ref()
     }
 
     // Setters
@@ -79,6 +80,7 @@ impl Material {
 
 pub fn lighting(
     material: Material,
+    object: &dyn Shape,
     light: Light,
     point: Tuple,
     eyev: Tuple,
@@ -86,7 +88,7 @@ pub fn lighting(
     in_shadow: bool,
 ) -> Colour {
     let colour = match material.pattern() {
-        Some(pattern) => pattern.stripe_at(point),
+        Some(pattern) => pattern.stripe_at_object(object, point),
         None => material.colour,
     };
 
@@ -118,6 +120,7 @@ pub fn lighting(
 
 #[cfg(test)]
 mod tests {
+    use crate::shape::sphere::Sphere;
     use approx::assert_abs_diff_eq;
 
     use super::*;
@@ -142,7 +145,7 @@ mod tests {
         let light = Light::point_light(Tuple::point(0.0, 0.0, -10.0), Colour::new(1.0, 1.0, 1.0));
         let in_shadow = false;
 
-        let result = lighting(m, light, position, eyev, normalv, in_shadow);
+        let result = lighting(m, &Sphere::new(), light, position, eyev, normalv, in_shadow);
 
         assert_eq!(result, Colour::new(1.9, 1.9, 1.9));
     }
@@ -157,7 +160,7 @@ mod tests {
         let light = Light::point_light(Tuple::point(0.0, 0.0, -10.0), Colour::new(1.0, 1.0, 1.0));
         let in_shadow = false;
 
-        let result = lighting(m, light, position, eyev, normalv, in_shadow);
+        let result = lighting(m, &Sphere::new(), light, position, eyev, normalv, in_shadow);
 
         assert_eq!(result, Colour::new(1.0, 1.0, 1.0));
     }
@@ -171,7 +174,7 @@ mod tests {
         let light = Light::point_light(Tuple::point(0.0, 10.0, -10.0), Colour::new(1.0, 1.0, 1.0));
         let in_shadow = false;
 
-        let result = lighting(m, light, position, eyev, normalv, in_shadow);
+        let result = lighting(m, &Sphere::new(), light, position, eyev, normalv, in_shadow);
 
         assert_abs_diff_eq!(
             result,
@@ -190,7 +193,7 @@ mod tests {
         let light = Light::point_light(Tuple::point(0.0, 10.0, -10.0), Colour::new(1.0, 1.0, 1.0));
         let in_shadow = false;
 
-        let result = lighting(m, light, position, eyev, normalv, in_shadow);
+        let result = lighting(m, &Sphere::new(), light, position, eyev, normalv, in_shadow);
 
         assert_abs_diff_eq!(
             result,
@@ -208,7 +211,7 @@ mod tests {
         let light = Light::point_light(Tuple::point(0.0, 0.0, 10.0), Colour::new(1.0, 1.0, 1.0));
         let in_shadow = false;
 
-        let result = lighting(m, light, position, eyev, normalv, in_shadow);
+        let result = lighting(m, &Sphere::new(), light, position, eyev, normalv, in_shadow);
 
         assert_eq!(result, Colour::new(0.1, 0.1, 0.1));
     }
@@ -222,7 +225,7 @@ mod tests {
         let light = Light::point_light(Tuple::point(0.0, 0.0, -10.0), Colour::new(1.0, 1.0, 1.0));
         let in_shadow = true;
 
-        let result = lighting(m, light, position, eyev, normalv, in_shadow);
+        let result = lighting(m, &Sphere::new(), light, position, eyev, normalv, in_shadow);
 
         assert_eq!(result, Colour::new(0.1, 0.1, 0.1));
     }
@@ -244,13 +247,22 @@ mod tests {
 
         let c1 = lighting(
             m.clone(),
+            &Sphere::new(),
             light.clone(),
             Tuple::point(0.9, 0.0, 0.0),
             eyev,
             normalv,
             false,
         );
-        let c2 = lighting(m, light, Tuple::point(1.1, 0.0, 0.0), eyev, normalv, false);
+        let c2 = lighting(
+            m,
+            &Sphere::new(),
+            light,
+            Tuple::point(1.1, 0.0, 0.0),
+            eyev,
+            normalv,
+            false,
+        );
 
         assert_eq!(c1, Colour::new(1.0, 1.0, 1.0));
         assert_eq!(c2, Colour::new(0.0, 0.0, 0.0));
