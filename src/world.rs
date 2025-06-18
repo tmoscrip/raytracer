@@ -3,7 +3,7 @@ use crate::{
     intersection::{hit, prepare_computations, Intersection, PreComputedData},
     light::Light,
     materials::lighting,
-    pattern::{gradient::Gradient, striped::Striped, Pattern, PatternType},
+    pattern::{gradient::Gradient, ring::Ring, striped::Striped, Pattern, PatternType},
     ray::Ray,
     shape::{plane::Plane, sphere::Sphere, Shape},
     sphere_registry::ShapeRegistry,
@@ -163,10 +163,10 @@ impl World {
         let mut floor_material = Material::new();
         floor_material.colour = Colour::new(1.0, 0.9, 0.9);
         floor_material.specular = 0.0; // Matte finish
-        let mut pattern = Striped::new(Colour::new(0.8, 0.8, 0.8), Colour::new(0.2, 0.2, 0.2));
+        let mut pattern = Ring::new(Colour::new(0.8, 0.8, 0.8), Colour::new(0.2, 0.2, 0.2));
         let pattern_transform = Matrix::scaling(0.5, 0.5, 0.5) * Matrix::rotation_y(PI / 2.0);
         pattern.set_transform(pattern_transform);
-        floor_material.set_pattern(Some(PatternType::Striped(pattern)));
+        floor_material.set_pattern(Some(PatternType::Ring(pattern)));
         floor.set_material(floor_material);
         world.add_object(floor);
 
@@ -206,6 +206,10 @@ impl World {
         right_material.colour = Colour::new(0.5, 1.0, 0.1);
         right_material.diffuse = 0.7;
         right_material.specular = 0.3;
+        let mut pattern = Ring::new(Colour::new(0.3, 0.7, 0.2), Colour::white());
+        let pattern_transform = Matrix::scaling(0.3, 0.3, 0.3);
+        pattern.set_transform(pattern_transform);
+        right_material.set_pattern(Some(PatternType::Ring(pattern)));
         right.set_material(right_material);
         world.add_object(right);
 

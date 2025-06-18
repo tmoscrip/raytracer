@@ -1,9 +1,12 @@
 pub mod gradient;
 pub mod pattern;
+pub mod ring;
 pub mod striped;
 
 use crate::{
-    colour::Colour, pattern::gradient::Gradient, pattern::striped::Striped, shape::Shape,
+    colour::Colour,
+    pattern::{gradient::Gradient, ring::Ring, striped::Striped},
+    shape::Shape,
     tuple::Tuple,
 };
 
@@ -13,6 +16,7 @@ pub use pattern::{Pattern, PatternData};
 pub enum PatternType {
     Striped(Striped),
     Gradient(Gradient),
+    Ring(Ring),
 }
 
 impl PatternType {
@@ -20,6 +24,7 @@ impl PatternType {
         match self {
             PatternType::Striped(pattern) => pattern.pattern_at_shape(shape, world_point),
             PatternType::Gradient(pattern) => pattern.pattern_at_shape(shape, world_point),
+            PatternType::Ring(pattern) => pattern.pattern_at_shape(shape, world_point),
         }
     }
 }
