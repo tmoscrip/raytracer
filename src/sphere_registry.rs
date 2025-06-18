@@ -29,6 +29,10 @@ impl ShapeRegistry {
         self.shapes.get(&id).map(|s| s.as_ref())
     }
 
+    pub fn get_mut(&mut self, id: u32) -> Option<&mut Box<dyn Shape>> {
+        self.shapes.get_mut(&id)
+    }
+
     pub fn get_all_spheres(&self) -> Vec<&dyn Shape> {
         self.shapes.values().map(|s| s.as_ref()).collect()
     }

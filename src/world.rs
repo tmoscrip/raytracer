@@ -13,6 +13,8 @@ use crate::{
     tuple::Tuple,
 };
 
+pub(crate) const MAX_BOUNCES: i32 = 5;
+
 pub struct World {
     pub registry: ShapeRegistry,
     pub light: Option<Light>,
@@ -166,8 +168,9 @@ impl World {
         let mut floor_material = Material::new();
         floor_material.colour = Colour::new(1.0, 0.9, 0.9);
         floor_material.specular = 0.0; // Matte finish
+        floor_material.reflective = 0.2;
         let mut pattern = Ring::new(Colour::new(0.8, 0.8, 0.8), Colour::new(0.2, 0.2, 0.2));
-        let pattern_transform = Matrix::scaling(0.5, 0.5, 0.5) * Matrix::rotation_y(PI / 2.0);
+        let pattern_transform = Matrix::scaling(0.3, 0.3, 0.3) * Matrix::rotation_y(PI / 2.0);
         pattern.set_transform(pattern_transform);
         floor_material.set_pattern(Some(PatternType::Ring(pattern)));
         floor.set_material(floor_material);
@@ -193,6 +196,7 @@ impl World {
         middle_material.colour = Colour::new(0.1, 1.0, 0.5);
         middle_material.diffuse = 0.7;
         middle_material.specular = 0.3;
+        middle_material.reflective = 0.2;
         let mut pattern = Striped::new(Colour::new(0.1, 0.3, 0.9), Colour::white());
         let pattern_transform = Matrix::scaling(0.2, 0.2, 0.2)
             * Matrix::rotation_y(PI / 6.0)
@@ -225,6 +229,7 @@ impl World {
         left_material.colour = Colour::new(1.0, 0.8, 0.1);
         left_material.diffuse = 0.7;
         left_material.specular = 0.3;
+        left_material.reflective = 0.5;
         left.set_material(left_material);
         world.add_object(left);
 
@@ -253,9 +258,10 @@ impl World {
         intersections
     }
 
-    pub fn shade_hit(&self, comps: &PreComputedData) -> Colour {
+    pub fn shade_hit(&self, comps: &PreComputedData, bounces_remaining: i32) -> Colour {
         let shadowed = self.is_shadowed(comps.over_point);
-        match self.light.clone() {
+
+        let surface = match self.light.clone() {
             Some(light) => lighting(
                 comps.object.material().clone(),
                 &Sphere::new(),
@@ -266,17 +272,21 @@ impl World {
                 shadowed,
             ),
             None => Colour::new(0.0, 0.0, 0.0), // No light = black
-        }
+        };
+
+        let reflected = self.reflected_colour(comps, bounces_remaining);
+
+        surface + reflected
     }
 
-    pub fn colour_at(&self, ray: &Ray) -> Colour {
+    pub fn colour_at(&self, ray: &Ray, bounces_remaining: i32) -> Colour {
         let xs = self.intersect_world(ray);
         let hit = hit(&xs);
         match hit {
             Some(hit) => {
                 let comp = prepare_computations(hit, ray, &self.registry);
                 match comp {
-                    Some(comp) => self.shade_hit(&comp),
+                    Some(comp) => self.shade_hit(&comp, bounces_remaining),
                     None => Colour::black(),
                 }
             }
@@ -297,6 +307,21 @@ impl World {
             Some(hit) => hit.t < distance,
             None => false,
         }
+    }
+
+    pub fn reflected_colour(&self, comps: &PreComputedData, bounces_remaining: i32) -> Colour {
+        if bounces_remaining <= 0 {
+            return Colour::black();
+        }
+
+        if comps.object.material().reflective == 0.0 {
+            return Colour::black();
+        }
+
+        let reflect_ray = Ray::new(comps.over_point, comps.reflectv);
+        let c = self.colour_at(&reflect_ray, bounces_remaining - 1);
+
+        c * comps.object.material().reflective
     }
 }
 
@@ -368,7 +393,7 @@ mod tests {
         };
 
         let comps = crate::intersection::prepare_computations(&i, &r, &w.registry).unwrap();
-        let c = w.shade_hit(&comps);
+        let c = w.shade_hit(&comps, MAX_BOUNCES);
 
         assert_abs_diff_eq!(c, Colour::new(0.38066, 0.47583, 0.2855), epsilon = 0.0001);
     }
@@ -388,7 +413,7 @@ mod tests {
         };
 
         let comps = crate::intersection::prepare_computations(&i, &r, &w.registry).unwrap();
-        let c = w.shade_hit(&comps);
+        let c = w.shade_hit(&comps, MAX_BOUNCES);
 
         assert_abs_diff_eq!(c, Colour::new(0.90498, 0.90498, 0.90498), epsilon = 0.0001);
     }
@@ -398,7 +423,7 @@ mod tests {
         let w = World::default_world();
         let r = Ray::new(Tuple::point(0.0, 0.0, -5.0), Tuple::vector(0.0, 1.0, 0.0));
 
-        let c = w.colour_at(&r);
+        let c = w.colour_at(&r, MAX_BOUNCES);
 
         assert_eq!(c, Colour::new(0.0, 0.0, 0.0));
     }
@@ -408,7 +433,7 @@ mod tests {
         let w = World::default_world();
         let r = Ray::new(Tuple::point(0.0, 0.0, -5.0), Tuple::vector(0.0, 0.0, 1.0));
 
-        let c = w.colour_at(&r);
+        let c = w.colour_at(&r, MAX_BOUNCES);
 
         assert_abs_diff_eq!(c, Colour::new(0.38066, 0.47583, 0.2855), epsilon = 0.0001);
     }
@@ -440,7 +465,7 @@ mod tests {
         w.add_object(s2);
 
         let r = Ray::new(Tuple::point(0.0, 0.0, 0.75), Tuple::vector(0.0, 0.0, -1.0));
-        let c = w.colour_at(&r);
+        let c = w.colour_at(&r, MAX_BOUNCES);
 
         // The color should be the inner object's material color
         let inner_color = w.registry.get_by_index(1).unwrap().material().colour;
@@ -501,8 +526,147 @@ mod tests {
         };
 
         let comps = prepare_computations(&i, &r, &w.registry).unwrap();
-        let c = w.shade_hit(&comps);
+        let c = w.shade_hit(&comps, MAX_BOUNCES);
 
         assert_eq!(c, Colour::new(0.1, 0.1, 0.1));
+    }
+
+    #[test]
+    fn reflected_colour_for_nonreflective_material() {
+        let mut w = World::default_world();
+        let r = Ray::new(Tuple::point(0.0, 0.0, 0.0), Tuple::vector(0.0, 0.0, 1.0));
+
+        // Get the second object (index 1) from the default world
+        let shape_id = w.registry.get_by_index(1).unwrap().id();
+        let shape = w.registry.get_mut(shape_id).unwrap();
+        let mut mat = shape.material().clone();
+        mat.ambient = 1.0;
+        shape.set_material(mat);
+
+        let i = Intersection::new(1.0, &*w.registry.get(shape_id).unwrap());
+        let comps = prepare_computations(&i, &r, &w.registry).unwrap();
+        let color = w.reflected_colour(&comps, MAX_BOUNCES);
+
+        assert_eq!(color, Colour::new(0.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn reflected_colour_for_reflective_material() {
+        let mut w = World::default_world();
+
+        let mut shape = Plane::new();
+        let mut mat = shape.material().clone();
+        mat.reflective = 0.5;
+        shape.set_material(mat);
+        shape.set_transform(crate::matrix::Matrix::translation(0.0, -1.0, 0.0));
+        let shape_id = w.add_object(shape);
+
+        let r = Ray::new(
+            Tuple::point(0.0, 0.0, -3.0),
+            Tuple::vector(
+                0.0,
+                -std::f64::consts::SQRT_2 / 2.0,
+                std::f64::consts::SQRT_2 / 2.0,
+            ),
+        );
+        let i = Intersection::new(
+            std::f64::consts::SQRT_2,
+            &*w.registry.get(shape_id).unwrap(),
+        );
+        let comps = prepare_computations(&i, &r, &w.registry).unwrap();
+        let colour = w.reflected_colour(&comps, MAX_BOUNCES);
+
+        assert_abs_diff_eq!(colour.r, 0.19032, epsilon = 0.0001);
+        assert_abs_diff_eq!(colour.g, 0.2379, epsilon = 0.0001);
+        assert_abs_diff_eq!(colour.b, 0.14274, epsilon = 0.0001);
+    }
+
+    #[test]
+    fn shade_hit_with_reflective_material() {
+        let mut w = World::default_world();
+
+        let mut shape = Plane::new();
+        let mut mat = shape.material().clone();
+        mat.reflective = 0.5;
+        shape.set_material(mat);
+        shape.set_transform(crate::matrix::Matrix::translation(0.0, -1.0, 0.0));
+        let shape_id = w.add_object(shape);
+
+        let r = Ray::new(
+            Tuple::point(0.0, 0.0, -3.0),
+            Tuple::vector(
+                0.0,
+                -std::f64::consts::SQRT_2 / 2.0,
+                std::f64::consts::SQRT_2 / 2.0,
+            ),
+        );
+        let i = Intersection::new(
+            std::f64::consts::SQRT_2,
+            &*w.registry.get(shape_id).unwrap(),
+        );
+        let comps = prepare_computations(&i, &r, &w.registry).unwrap();
+        let colour = w.shade_hit(&comps, MAX_BOUNCES);
+
+        assert_abs_diff_eq!(colour.r, 0.87677, epsilon = 0.0001);
+        assert_abs_diff_eq!(colour.g, 0.92436, epsilon = 0.0001);
+        assert_abs_diff_eq!(colour.b, 0.82918, epsilon = 0.0001);
+    }
+
+    #[test]
+    fn color_at_with_mutually_reflective_surfaces() {
+        let mut w = World::new();
+        w.light = Some(Light::point_light(
+            Tuple::point(0.0, 0.0, 0.0),
+            Colour::new(1.0, 1.0, 1.0),
+        ));
+
+        let mut lower = Plane::new();
+        let mut lower_mat = lower.material().clone();
+        lower_mat.reflective = 1.0;
+        lower.set_material(lower_mat);
+        lower.set_transform(crate::matrix::Matrix::translation(0.0, -1.0, 0.0));
+        w.add_object(lower);
+
+        let mut upper = Plane::new();
+        let mut upper_mat = upper.material().clone();
+        upper_mat.reflective = 1.0;
+        upper.set_material(upper_mat);
+        upper.set_transform(crate::matrix::Matrix::translation(0.0, 1.0, 0.0));
+        w.add_object(upper);
+
+        let r = Ray::new(Tuple::point(0.0, 0.0, 0.0), Tuple::vector(0.0, 1.0, 0.0));
+
+        // This should terminate successfully without infinite recursion
+        let _colour = w.colour_at(&r, MAX_BOUNCES);
+    }
+
+    #[test]
+    fn reflected_color_at_maximum_recursive_depth() {
+        let mut w = World::default_world();
+
+        let mut shape = Plane::new();
+        let mut material = shape.material().clone();
+        material.reflective = 0.5;
+        shape.set_material(material);
+        shape.set_transform(crate::matrix::Matrix::translation(0.0, -1.0, 0.0));
+        let shape_id = w.add_object(shape);
+
+        let r = Ray::new(
+            Tuple::point(0.0, 0.0, -3.0),
+            Tuple::vector(
+                0.0,
+                -std::f64::consts::SQRT_2 / 2.0,
+                std::f64::consts::SQRT_2 / 2.0,
+            ),
+        );
+        let i = Intersection::new(
+            std::f64::consts::SQRT_2,
+            &*w.registry.get(shape_id).unwrap(),
+        );
+        let comps = prepare_computations(&i, &r, &w.registry).unwrap();
+
+        let color = w.reflected_colour(&comps, 0);
+
+        assert_eq!(color, Colour::black());
     }
 }

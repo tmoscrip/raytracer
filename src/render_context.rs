@@ -97,7 +97,7 @@ impl RenderContext {
                 let ray = self
                     .camera
                     .ray_for_pixel(global_x as usize, global_y as usize);
-                let colour = self.world.colour_at(&ray);
+                let colour = self.world.colour_at(&ray, crate::world::MAX_BOUNCES);
 
                 let tile_pixel_index = (local_y * tile_width + local_x) as usize;
                 let buffer_index = tile_pixel_index * 4;

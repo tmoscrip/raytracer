@@ -94,7 +94,7 @@ impl Camera {
         for y in 0..self.vsize {
             for x in 0..self.hsize {
                 let ray = self.ray_for_pixel(x, y);
-                let colour = world.colour_at(&ray);
+                let colour = world.colour_at(&ray, crate::world::MAX_BOUNCES);
                 image.write_pixel(x, y, colour);
             }
         }
@@ -106,7 +106,7 @@ impl Camera {
         for y in 0..self.vsize {
             for x in 0..self.hsize {
                 let ray = self.ray_for_pixel(x, y);
-                let colour = world.colour_at(&ray);
+                let colour = world.colour_at(&ray, crate::world::MAX_BOUNCES);
                 let pixel_index = y * self.hsize + x;
                 buffer[pixel_index] = colour;
             }
