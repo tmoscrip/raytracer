@@ -9,7 +9,7 @@ use crate::{
     },
     ray::Ray,
     shape::{plane::Plane, sphere::Sphere, Shape},
-    sphere_registry::ShapeRegistry,
+    shape_registry::ShapeRegistry,
     tuple::Tuple,
 };
 
