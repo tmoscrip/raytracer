@@ -24,6 +24,21 @@ impl Sphere {
             },
         }
     }
+
+    pub fn glass() -> Sphere {
+        let identity = Matrix::identity();
+        let mut m = Material::new();
+        m.transparency = 1.0;
+        m.refractive_index = 1.5;
+        Sphere {
+            data: ShapeData {
+                id: 0, // Temporary, will be set by registry
+                transform: identity.clone(),
+                inverse_transform: identity.inverse(),
+                material: m,
+            },
+        }
+    }
 }
 
 impl Shape for Sphere {
@@ -225,5 +240,12 @@ mod tests {
         s.set_material(m);
 
         assert_eq!(s.material().ambient, 1.0);
+    }
+
+    #[test]
+    fn glassy_sphere_has_expected_properties() {
+        let s = Sphere::glass();
+        assert_eq!(s.material().transparency, 1.0);
+        assert_eq!(s.material().refractive_index, 1.5);
     }
 }
