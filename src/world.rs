@@ -284,7 +284,7 @@ impl World {
         let hit = hit(&xs);
         match hit {
             Some(hit) => {
-                let comp = prepare_computations(hit, ray, &self.registry);
+                let comp = prepare_computations(hit, ray, &self.registry, Some(&xs));
                 match comp {
                     Some(comp) => self.shade_hit(&comp, bounces_remaining),
                     None => Colour::black(),
@@ -392,7 +392,7 @@ mod tests {
             object_id: shape.id(),
         };
 
-        let comps = crate::intersection::prepare_computations(&i, &r, &w.registry).unwrap();
+        let comps = crate::intersection::prepare_computations(&i, &r, &w.registry, None).unwrap();
         let c = w.shade_hit(&comps, MAX_BOUNCES);
 
         assert_abs_diff_eq!(c, Colour::new(0.38066, 0.47583, 0.2855), epsilon = 0.0001);
@@ -412,7 +412,7 @@ mod tests {
             object_id: shape.id(),
         };
 
-        let comps = crate::intersection::prepare_computations(&i, &r, &w.registry).unwrap();
+        let comps = crate::intersection::prepare_computations(&i, &r, &w.registry, None).unwrap();
         let c = w.shade_hit(&comps, MAX_BOUNCES);
 
         assert_abs_diff_eq!(c, Colour::new(0.90498, 0.90498, 0.90498), epsilon = 0.0001);
@@ -525,7 +525,7 @@ mod tests {
             object_id: s2_id,
         };
 
-        let comps = prepare_computations(&i, &r, &w.registry).unwrap();
+        let comps = prepare_computations(&i, &r, &w.registry, None).unwrap();
         let c = w.shade_hit(&comps, MAX_BOUNCES);
 
         assert_eq!(c, Colour::new(0.1, 0.1, 0.1));
@@ -544,7 +544,7 @@ mod tests {
         shape.set_material(mat);
 
         let i = Intersection::new(1.0, &*w.registry.get(shape_id).unwrap());
-        let comps = prepare_computations(&i, &r, &w.registry).unwrap();
+        let comps = prepare_computations(&i, &r, &w.registry, None).unwrap();
         let color = w.reflected_colour(&comps, MAX_BOUNCES);
 
         assert_eq!(color, Colour::new(0.0, 0.0, 0.0));
@@ -573,7 +573,7 @@ mod tests {
             std::f64::consts::SQRT_2,
             &*w.registry.get(shape_id).unwrap(),
         );
-        let comps = prepare_computations(&i, &r, &w.registry).unwrap();
+        let comps = prepare_computations(&i, &r, &w.registry, None).unwrap();
         let colour = w.reflected_colour(&comps, MAX_BOUNCES);
 
         assert_abs_diff_eq!(colour.r, 0.19032, epsilon = 0.0001);
@@ -604,7 +604,7 @@ mod tests {
             std::f64::consts::SQRT_2,
             &*w.registry.get(shape_id).unwrap(),
         );
-        let comps = prepare_computations(&i, &r, &w.registry).unwrap();
+        let comps = prepare_computations(&i, &r, &w.registry, None).unwrap();
         let colour = w.shade_hit(&comps, MAX_BOUNCES);
 
         assert_abs_diff_eq!(colour.r, 0.87677, epsilon = 0.0001);
@@ -663,7 +663,7 @@ mod tests {
             std::f64::consts::SQRT_2,
             &*w.registry.get(shape_id).unwrap(),
         );
-        let comps = prepare_computations(&i, &r, &w.registry).unwrap();
+        let comps = prepare_computations(&i, &r, &w.registry, None).unwrap();
 
         let color = w.reflected_colour(&comps, 0);
 
